@@ -32,7 +32,7 @@ var hex = intel_hex.parse(data).data;
 With [serialport](https://www.npmjs.com/package/serialport), you need to wait for your open event, but then you can bootload:
 ```
 var Stk500 = require('stk500');
-
+var use_8_bit_addresseses = false; // use true for avr4809
 serialPort.on('open', function(){
 
 	var board = {
@@ -41,7 +41,7 @@ serialPort.on('open', function(){
 	  timeout: 400
 	};
 
-	Stk500.bootload(serialPort, hex, board, function(error){
+	Stk500.bootload(serialPort, hex, board, use_8_bit_addresseses, function(error){
 
 	  serialPort.close(function (error) {
 	    console.log(error);

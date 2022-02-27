@@ -23,7 +23,7 @@ function upload(path, done){
 
   serialPort.on('open', function(){
 
-    Stk500.bootload(serialPort, hex, board, function(error){
+    Stk500.bootload(serialPort, hex, board, false, function(error){
 
       serialPort.close(function (error) {
         console.log(error);

@@ -185,7 +185,7 @@ stk500.prototype.loadPage = function (stream, writeBytes, timeout, done) {
   });
 };
 
-stk500.prototype.upload = function (stream, hex, pageSize, timeout, done) {
+stk500.prototype.upload = function (stream, hex, pageSize, timeout, use_8_bit_addresseses, done) {
 	this.log("program");
 
 	var pageaddr = 0;
@@ -201,7 +201,7 @@ stk500.prototype.upload = function (stream, hex, pageSize, timeout, done) {
 			self.log("program page");
       async.series([
       	function(cbdone){
-      		useaddr = pageaddr >> 1;
+          useaddr = use_8_bit_addresseses ? pageaddr : pageaddr >> 1;
       		cbdone();
       	},
       	function(cbdone){
@@ -249,7 +249,7 @@ stk500.prototype.exitProgrammingMode = function (stream, timeout, done) {
   });
 };
 
-stk500.prototype.verify = function (stream, hex, pageSize, timeout, done) {
+stk500.prototype.verify = function (stream, hex, pageSize, timeout, use_8_bit_addresseses, done) {
 	this.log("verify");
 
 	var pageaddr = 0;
@@ -265,7 +265,7 @@ stk500.prototype.verify = function (stream, hex, pageSize, timeout, done) {
 			self.log("verify page");
       async.series([
       	function(cbdone){
-      		useaddr = pageaddr >> 1;
+          useaddr = use_8_bit_addresseses ? pageaddr : pageaddr >> 1;
       		cbdone();
       	},
       	function(cbdone){
@@ -324,7 +324,7 @@ stk500.prototype.verifyPage = function (stream, writeBytes, pageSize, timeout, d
   }); 
 };
 
-stk500.prototype.bootload = function (stream, hex, opt, done) {
+stk500.prototype.bootload = function (stream, hex, opt, use_8_bit_addresseses, done) {
 
   var parameters = {
     pagesizehigh: (opt.pagesizehigh<<8 & 0xff),
@@ -339,8 +339,8 @@ stk500.prototype.bootload = function (stream, hex, opt, done) {
     this.verifySignature.bind(this, stream, opt.signature, opt.timeout),
     this.setOptions.bind(this, stream, parameters, opt.timeout),
     this.enterProgrammingMode.bind(this, stream, opt.timeout),
-    this.upload.bind(this, stream, hex, opt.pageSize, opt.timeout),
-    this.verify.bind(this, stream, hex, opt.pageSize, opt.timeout),
+    this.upload.bind(this, stream, hex, opt.pageSize, opt.timeout, use_8_bit_addresseses),
+    this.verify.bind(this, stream, hex, opt.pageSize, opt.timeout, use_8_bit_addresseses),
     this.exitProgrammingMode.bind(this, stream, opt.timeout)
   ], function(error){
   	return done(error);

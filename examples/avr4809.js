@@ -3,14 +3,14 @@ var intel_hex = require('intel-hex');
 var Stk500 = require('../');
 var fs = require('fs');
 
-var data = fs.readFileSync('arduino-1.0.6/uno/StandardFirmata.cpp.hex', { encoding: 'utf8' });
+var data = fs.readFileSync('arduino-1.0.6/168/avr4809.cpp.hex', { encoding: 'utf8' });
 
 var hex = intel_hex.parse(data).data;
 
 var board = {
-  name: "Arduino Uno",
-  baud: 115200,
-  signature: new Buffer([0x1e, 0x95, 0x0f]),
+  name: "Diecimila / Duemilanove 168",
+  baud: 19200,
+  signature: new Buffer([0x1e, 0x94, 0x06]),
   pageSize: 128,
   timeout: 400
 };
@@ -23,7 +23,7 @@ function upload(path, done){
 
   serialPort.on('open', function(){
 
-    Stk500.bootload(serialPort, hex, board, false, function(error){
+    Stk500.bootload(serialPort, hex, board, true, function(error){
 
       serialPort.close(function (error) {
         console.log(error);
