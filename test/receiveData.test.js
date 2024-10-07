@@ -1,7 +1,7 @@
 import { test, describe, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import Statics from "../lib/statics.js";
-import receiveData from "../lib/receiveData.js";
+import Statics from "../src/lib/statics.js";
+import receiveData from "../src/lib/receiveData.js";
 import { Readable } from "node:stream";
 
 describe("receiveData", () => {
