@@ -1,7 +1,9 @@
-var SerialPort = require("serialport");
+const { SerialPort } = require('serialport')
 var intel_hex = require('intel-hex');
 var Stk500 = require('../');
 var fs = require('fs');
+
+const stk = new Stk500();
 
 var data = fs.readFileSync('arduino-1.0.6/168/StandardFirmata.cpp.hex', { encoding: 'utf8' });
 
@@ -10,20 +12,19 @@ var hex = intel_hex.parse(data).data;
 var board = {
   name: "Diecimila / Duemilanove 168",
   baud: 19200,
-  signature: new Buffer([0x1e, 0x94, 0x06]),
+  signature: Buffer.from([0x1e, 0x94, 0x06]),
   pageSize: 128,
   timeout: 400
 };
 
 function upload(path, done){
-
-  var serialPort = new SerialPort.SerialPort(path, {
-    baudrate: board.baud,
+  const serialPort = new SerialPort({
+    path,
+    baudRate: board.baud,
   });
 
   serialPort.on('open', function(){
-
-    Stk500.bootload(serialPort, hex, board, false, function(error){
+    stk.bootload(serialPort, hex, board, false, function(error){
 
       serialPort.close(function (error) {
         console.log(error);

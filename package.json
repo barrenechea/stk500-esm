@@ -24,8 +24,8 @@
     "event-stream": "^3.1.7",
     "mocha": "^2.0.1",
     "should": "^4.4.1",
-    "intel-hex": "^0.1.1",
-    "serialport": "^1.4.0",
+    "intel-hex": "^0.2.0",
+    "serialport": "^12.0.0",
     "sinon": "^1.12.2"
   }
 }

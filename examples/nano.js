@@ -1,18 +1,18 @@
 const { SerialPort } = require('serialport')
 var intel_hex = require('intel-hex');
-var Stk500 = require('../');
+var Stk500 = require('..');
 var fs = require('fs');
 
 const stk = new Stk500();
 
-var data = fs.readFileSync('arduino-1.0.6/duemilanove328/StandardFirmata.cpp.hex', { encoding: 'utf8' });
+var data = fs.readFileSync('arduino-2.3.3/nano/Blink.ino.hex', { encoding: 'utf8' });
 
 var hex = intel_hex.parse(data).data;
 
 var board = {
-  name: "Duemilanove 328",
-  baud: 57600,
-  signature: Buffer.from([0x1e, 0x95, 0x0F]),
+  name: "Arduino Nano",
+  baud: 115200,
+  signature: Buffer.from([0x1e, 0x95, 0x0f]),
   pageSize: 128,
   timeout: 400
 };
