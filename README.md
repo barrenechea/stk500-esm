@@ -65,6 +65,7 @@ For more detailed examples, please check the `examples` folder in the repository
 - `avr4809.ts`: Example for AVR4809 based boards
 - `diecimila-duemilanove168.ts`: Example for Arduino Diecimila and Duemilanove (ATmega168)
 - `duemilanove328.ts`: Example for Arduino Duemilanove (ATmega328)
+- `lg8f328.ts`: Example for LGT8F328 boards
 - `nano.ts`: Example for Arduino Nano
 - `uno.ts`: Example for Arduino Uno
 
