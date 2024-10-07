@@ -1,7 +1,17 @@
 import receiveData from "./receiveData.js";
 import Statics from "./statics.js";
 
-async function sendCommand(stream, opt) {
+type SendCommandOptions = {
+  cmd: Buffer | number[];
+  timeout?: number;
+  responseData?: Buffer;
+  responseLength?: number;
+};
+
+async function sendCommand(
+  stream: NodeJS.ReadWriteStream,
+  opt: SendCommandOptions
+): Promise<Buffer> {
   const timeout = opt.timeout || 0;
   let responseData = null;
   let responseLength = 0;
@@ -22,7 +32,7 @@ async function sendCommand(stream, opt) {
   }
 
   try {
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       stream.write(cmd, (err) => {
         if (err) {
           reject(new Error(`Sending ${cmd.toString("hex")}: ${err.message}`));
@@ -43,8 +53,12 @@ async function sendCommand(stream, opt) {
     }
 
     return data;
-  } catch (error) {
-    throw new Error(`Sending ${cmd.toString("hex")}: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(
+      `Sending ${cmd.toString("hex")}: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }
 
