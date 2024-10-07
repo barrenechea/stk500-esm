@@ -18,9 +18,7 @@
   ],
   "author": "Jacob Rosenthal",
   "license": "MIT",
-  "dependencies": {
-    "async": "^2.6.4"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.7.4",
     "intel-hex": "^0.2.0",

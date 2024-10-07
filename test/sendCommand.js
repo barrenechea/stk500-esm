@@ -36,19 +36,13 @@ describe("sendCommands", () => {
       callback(null, data);
     };
 
-    const promise = new Promise((resolve) => {
-      sendCommand(hardware, opt, (err, data) => {
-        assert.ifError(err);
-        assert(writeCalled);
-        resolve();
-      });
-    });
-
-    process.nextTick(() => {
+    setTimeout(() => {
       hardware.insert(Statics.OK_RESPONSE);
-    });
+    }, 0);
 
-    await promise;
+    const data = await sendCommand(hardware, opt);
+    assert(writeCalled);
+    assert(data.equals(Statics.OK_RESPONSE));
   });
 
   test("should write an array command", async (t) => {
@@ -69,19 +63,13 @@ describe("sendCommands", () => {
       callback(null, data);
     };
 
-    const promise = new Promise((resolve) => {
-      sendCommand(hardware, opt, (err, data) => {
-        assert.ifError(err);
-        assert(writeCalled);
-        resolve();
-      });
-    });
-
-    process.nextTick(() => {
+    setTimeout(() => {
       hardware.insert(Statics.OK_RESPONSE);
-    });
+    }, 0);
 
-    await promise;
+    const data = await sendCommand(hardware, opt);
+    assert(writeCalled);
+    assert(data.equals(Statics.OK_RESPONSE));
   });
 
   test("should timeout", async (t) => {
@@ -91,18 +79,9 @@ describe("sendCommands", () => {
       timeout: 10,
     };
 
-    const promise = new Promise((resolve) => {
-      sendCommand(hardware, opt, (err, data) => {
-        assert(err);
-        assert.equal(
-          err.message,
-          "Sending 3020: receiveData timeout after 10ms"
-        );
-        resolve();
-      });
+    await assert.rejects(sendCommand(hardware, opt), {
+      message: "Sending 3020: receiveData timeout after 10ms",
     });
-
-    await promise;
   });
 
   test("should get n number of bytes", async (t) => {
@@ -112,19 +91,12 @@ describe("sendCommands", () => {
       timeout: 10,
     };
 
-    const promise = new Promise((resolve) => {
-      sendCommand(hardware, opt, (err, data) => {
-        assert.ifError(err);
-        assert(data.equals(Statics.OK_RESPONSE));
-        resolve();
-      });
-    });
-
-    process.nextTick(() => {
+    setTimeout(() => {
       hardware.insert(Statics.OK_RESPONSE);
-    });
+    }, 0);
 
-    await promise;
+    const data = await sendCommand(hardware, opt);
+    assert(data.equals(Statics.OK_RESPONSE));
   });
 
   test("should match response", async (t) => {
@@ -134,18 +106,11 @@ describe("sendCommands", () => {
       timeout: 10,
     };
 
-    const promise = new Promise((resolve) => {
-      sendCommand(hardware, opt, (err, data) => {
-        assert.ifError(err);
-        assert(data.equals(Statics.OK_RESPONSE));
-        resolve();
-      });
-    });
-
-    process.nextTick(() => {
+    setTimeout(() => {
       hardware.insert(Statics.OK_RESPONSE);
-    });
+    }, 0);
 
-    await promise;
+    const data = await sendCommand(hardware, opt);
+    assert(data.equals(Statics.OK_RESPONSE));
   });
 });

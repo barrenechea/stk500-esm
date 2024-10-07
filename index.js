@@ -1,4 +1,3 @@
-import async from "async";
 import Statics from "./lib/statics.js";
 import sendCommand from "./lib/sendCommand.js";
 
@@ -10,18 +9,14 @@ class STK500 {
   constructor(opts = {}) {
     this.opts = opts;
     this.quiet = this.opts.quiet || false;
-    if (this.quiet) {
-      this.log = () => {};
-    } else {
-      if (typeof window === "object") {
-        this.log = console.log.bind(window);
-      } else {
-        this.log = console.log;
-      }
-    }
+    this.log = this.quiet
+      ? () => {}
+      : typeof window === "object"
+      ? console.log.bind(window)
+      : console.log;
   }
 
-  sync(stream, attempts, timeout, done) {
+  async sync(stream, attempts, timeout) {
     this.log("sync");
     let tries = 1;
 
@@ -31,25 +26,21 @@ class STK500 {
       timeout: timeout,
     };
 
-    const attempt = () => {
-      tries++;
-      sendCommand(stream, opt, (err, data) => {
-        if (err && tries <= attempts) {
-          if (err) {
-            this.log(err);
-          }
-          this.log("failed attempt again", tries);
-          return attempt();
-        }
-        this.log("sync complete", err, data, tries);
-        done(err, data);
-      });
-    };
-
-    attempt();
+    while (tries <= attempts) {
+      try {
+        const data = await sendCommand(stream, opt);
+        this.log("sync complete", data, tries);
+        return data;
+      } catch (err) {
+        this.log(err);
+        this.log("failed attempt again", tries);
+        tries++;
+      }
+    }
+    throw new Error("Sync failed after " + attempts + " attempts");
   }
 
-  verifySignature(stream, signature, timeout, done) {
+  async verifySignature(stream, signature, timeout) {
     this.log("verify signature");
     const match = Buffer.concat([
       Buffer.from([Statics.Resp_STK_INSYNC]),
@@ -63,30 +54,29 @@ class STK500 {
       timeout: timeout,
     };
 
-    sendCommand(stream, opt, (err, data) => {
-      if (data) {
-        this.log("confirm signature", err, data, data.toString("hex"));
-      } else {
-        this.log("confirm signature", err, "no data");
-      }
-      done(err, data);
-    });
+    try {
+      const data = await sendCommand(stream, opt);
+      this.log("confirm signature", data, data.toString("hex"));
+      return data;
+    } catch (err) {
+      this.log("confirm signature", err, "no data");
+      throw err;
+    }
   }
 
-  getSignature(stream, timeout, done) {
+  async getSignature(stream, timeout) {
     this.log("get signature");
     const opt = {
       cmd: [Statics.Cmnd_STK_READ_SIGN],
       responseLength: 5,
       timeout: timeout,
     };
-    sendCommand(stream, opt, (err, data) => {
-      this.log("getSignature", err, data);
-      done(err, data);
-    });
+    const data = await sendCommand(stream, opt);
+    this.log("getSignature", data);
+    return data;
   }
 
-  setOptions(stream, options, timeout, done) {
+  async setOptions(stream, options, timeout) {
     this.log("set device");
 
     const opt = {
@@ -117,29 +107,23 @@ class STK500 {
       timeout: timeout,
     };
 
-    sendCommand(stream, opt, (err, data) => {
-      this.log("setOptions", err, data);
-      if (err) {
-        return done(err);
-      }
-      done();
-    });
+    const data = await sendCommand(stream, opt);
+    this.log("setOptions", data);
   }
 
-  enterProgrammingMode(stream, timeout, done) {
+  async enterProgrammingMode(stream, timeout) {
     this.log("send enter programming mode");
     const opt = {
       cmd: [Statics.Cmnd_STK_ENTER_PROGMODE],
       responseData: Statics.OK_RESPONSE,
       timeout: timeout,
     };
-    sendCommand(stream, opt, (err, data) => {
-      this.log("sent enter programming mode", err, data);
-      done(err, data);
-    });
+    const data = await sendCommand(stream, opt);
+    this.log("sent enter programming mode", data);
+    return data;
   }
 
-  loadAddress(stream, useaddr, timeout, done) {
+  async loadAddress(stream, useaddr, timeout) {
     this.log("load address");
     const addr_low = useaddr & 0xff;
     const addr_high = (useaddr >> 8) & 0xff;
@@ -148,13 +132,12 @@ class STK500 {
       responseData: Statics.OK_RESPONSE,
       timeout: timeout,
     };
-    sendCommand(stream, opt, (err, data) => {
-      this.log("loaded address", err, data);
-      done(err, data);
-    });
+    const data = await sendCommand(stream, opt);
+    this.log("loaded address", data);
+    return data;
   }
 
-  loadPage(stream, writeBytes, timeout, done) {
+  async loadPage(stream, writeBytes, timeout) {
     this.log("load page");
     const bytes_low = writeBytes.length & 0xff;
     const bytes_high = writeBytes.length >> 8;
@@ -170,124 +153,98 @@ class STK500 {
       responseData: Statics.OK_RESPONSE,
       timeout: timeout,
     };
-    sendCommand(stream, opt, (err, data) => {
-      this.log("loaded page", err, data);
-      done(err, data);
-    });
+    const data = await sendCommand(stream, opt);
+    this.log("loaded page", data);
+    return data;
   }
 
-  upload(stream, hex, pageSize, timeout, use_8_bit_addresseses, done) {
+  async upload(stream, hex, pageSize, timeout, use_8_bit_addresses) {
     this.log("program");
 
     let pageaddr = 0;
     let writeBytes;
     let useaddr;
 
-    async.whilst(
-      () => pageaddr < hex.length,
-      (pagedone) => {
-        this.log("program page");
-        async.series(
-          [
-            (cbdone) => {
-              useaddr = use_8_bit_addresseses ? pageaddr : pageaddr >> 1;
-              cbdone();
-            },
-            (cbdone) => {
-              this.loadAddress(stream, useaddr, timeout, cbdone);
-            },
-            (cbdone) => {
-              writeBytes = hex.slice(
-                pageaddr,
-                hex.length > pageSize ? pageaddr + pageSize : hex.length - 1
-              );
-              cbdone();
-            },
-            (cbdone) => {
-              this.loadPage(stream, writeBytes, timeout, cbdone);
-            },
-            (cbdone) => {
-              this.log("programmed page");
-              pageaddr = pageaddr + writeBytes.length;
-              setTimeout(cbdone, 4);
-            },
-          ],
-          (error) => {
-            this.log("page done");
-            pagedone(error);
-          }
+    while (pageaddr < hex.length) {
+      this.log("program page");
+
+      try {
+        useaddr = use_8_bit_addresses ? pageaddr : pageaddr >> 1;
+
+        await this.loadAddress(stream, useaddr, timeout);
+
+        writeBytes = hex.slice(
+          pageaddr,
+          hex.length > pageSize ? pageaddr + pageSize : hex.length
         );
-      },
-      (error) => {
-        this.log("upload done");
-        done(error);
+
+        await this.loadPage(stream, writeBytes, timeout);
+
+        this.log("programmed page");
+        pageaddr = pageaddr + writeBytes.length;
+
+        await new Promise((resolve) => setTimeout(resolve, 4));
+
+        this.log("page done");
+      } catch (error) {
+        this.log("Error in page programming");
+        throw error;
       }
-    );
+    }
+
+    this.log("upload done");
   }
 
-  exitProgrammingMode(stream, timeout, done) {
+  async exitProgrammingMode(stream, timeout) {
     this.log("send leave programming mode");
     const opt = {
       cmd: [Statics.Cmnd_STK_LEAVE_PROGMODE],
       responseData: Statics.OK_RESPONSE,
       timeout: timeout,
     };
-    sendCommand(stream, opt, (err, data) => {
-      this.log("sent leave programming mode", err, data);
-      done(err, data);
-    });
+    const data = await sendCommand(stream, opt);
+    this.log("sent leave programming mode", data);
+    return data;
   }
 
-  verify(stream, hex, pageSize, timeout, use_8_bit_addresseses, done) {
+  async verify(stream, hex, pageSize, timeout, use_8_bit_addresses) {
     this.log("verify");
 
     let pageaddr = 0;
     let writeBytes;
     let useaddr;
 
-    async.whilst(
-      () => pageaddr < hex.length,
-      (pagedone) => {
-        this.log("verify page");
-        async.series(
-          [
-            (cbdone) => {
-              useaddr = use_8_bit_addresseses ? pageaddr : pageaddr >> 1;
-              cbdone();
-            },
-            (cbdone) => {
-              this.loadAddress(stream, useaddr, timeout, cbdone);
-            },
-            (cbdone) => {
-              writeBytes = hex.slice(
-                pageaddr,
-                hex.length > pageSize ? pageaddr + pageSize : hex.length - 1
-              );
-              cbdone();
-            },
-            (cbdone) => {
-              this.verifyPage(stream, writeBytes, pageSize, timeout, cbdone);
-            },
-            (cbdone) => {
-              this.log("verified page");
-              pageaddr = pageaddr + writeBytes.length;
-              setTimeout(cbdone, 4);
-            },
-          ],
-          (error) => {
-            this.log("verify done");
-            pagedone(error);
-          }
+    while (pageaddr < hex.length) {
+      this.log("verify page");
+
+      try {
+        useaddr = use_8_bit_addresses ? pageaddr : pageaddr >> 1;
+
+        await this.loadAddress(stream, useaddr, timeout);
+
+        writeBytes = hex.slice(
+          pageaddr,
+          hex.length > pageSize ? pageaddr + pageSize : hex.length
         );
-      },
-      (error) => {
+
+        await this.verifyPage(stream, writeBytes, pageSize, timeout);
+
+        this.log("verified page");
+        pageaddr = pageaddr + writeBytes.length;
+
+        await new Promise((resolve) => setTimeout(resolve, 4));
+
         this.log("verify done");
-        done(error);
+      } catch (error) {
+        this.log("Error in page verification");
+        throw error;
       }
-    );
+    }
+
+    this.log("verify done");
   }
 
-  verifyPage(stream, writeBytes, pageSize, timeout, done) {
+  async verifyPage(stream, writeBytes, pageSize, timeout) {
     this.log("verify page");
     const match = Buffer.concat([
       Buffer.from([Statics.Resp_STK_INSYNC]),
@@ -302,48 +259,42 @@ class STK500 {
       responseLength: match.length,
       timeout: timeout,
     };
-    sendCommand(stream, opt, (err, data) => {
-      this.log("confirm page", err, data, data.toString("hex"));
-      done(err, data);
-    });
+    const data = await sendCommand(stream, opt);
+    this.log("confirm page", data, data.toString("hex"));
+    return data;
   }
 
-  bootload(stream, hex, opt, use_8_bit_addresseses, done) {
+  async bootload(stream, hex, opt, use_8_bit_addresses) {
     const parameters = {
       pagesizehigh: (opt.pagesizehigh << 8) & 0xff,
       pagesizelow: opt.pagesizelow & 0xff,
     };
 
-    async.series(
-      [
-        this.sync.bind(this, stream, 3, opt.timeout),
-        this.sync.bind(this, stream, 3, opt.timeout),
-        this.sync.bind(this, stream, 3, opt.timeout),
-        this.verifySignature.bind(this, stream, opt.signature, opt.timeout),
-        this.setOptions.bind(this, stream, parameters, opt.timeout),
-        this.enterProgrammingMode.bind(this, stream, opt.timeout),
-        this.upload.bind(
-          this,
-          stream,
-          hex,
-          opt.pageSize,
-          opt.timeout,
-          use_8_bit_addresseses
-        ),
-        this.verify.bind(
-          this,
-          stream,
-          hex,
-          opt.pageSize,
-          opt.timeout,
-          use_8_bit_addresseses
-        ),
-        this.exitProgrammingMode.bind(this, stream, opt.timeout),
-      ],
-      (error) => {
-        return done(error);
-      }
-    );
+    try {
+      await this.sync(stream, 3, opt.timeout);
+      await this.sync(stream, 3, opt.timeout);
+      await this.sync(stream, 3, opt.timeout);
+      await this.verifySignature(stream, opt.signature, opt.timeout);
+      await this.setOptions(stream, parameters, opt.timeout);
+      await this.enterProgrammingMode(stream, opt.timeout);
+      await this.upload(
+        stream,
+        hex,
+        opt.pageSize,
+        opt.timeout,
+        use_8_bit_addresses
+      );
+      await this.verify(
+        stream,
+        hex,
+        opt.pageSize,
+        opt.timeout,
+        use_8_bit_addresses
+      );
+      await this.exitProgrammingMode(stream, opt.timeout);
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

@@ -18,41 +18,26 @@ describe("receiveData", () => {
 
   test("should receive a matching buffer", async (t) => {
     const inputBuffer = Statics.OK_RESPONSE;
-    const promise = new Promise((resolve) => {
-      receiveData(port, 10, inputBuffer.length, (err, data) => {
-        assert.ifError(err);
-        assert(data.equals(inputBuffer));
-        resolve();
-      });
-    });
     port.write(inputBuffer);
-    await promise;
+    const data = await receiveData(port, 10, inputBuffer.length);
+    assert(data.equals(inputBuffer));
   });
 
   test("should timeout", async (t) => {
     const inputBuffer = Statics.OK_RESPONSE;
-    const promise = new Promise((resolve) => {
-      receiveData(port, 10, inputBuffer.length, (err, data) => {
-        assert(err);
-        assert.equal(err.message, "receiveData timeout after 10ms");
-        resolve();
-      });
-    });
     port.write(inputBuffer.slice(0, 1));
-    await promise;
+    await assert.rejects(receiveData(port, 10, inputBuffer.length), {
+      message: "receiveData timeout after 10ms",
+    });
   });
 
   test("should receive a buffer in chunks", async (t) => {
     const inputBuffer = Statics.OK_RESPONSE;
-    const promise = new Promise((resolve) => {
-      receiveData(port, 10, inputBuffer.length, (err, data) => {
-        assert.ifError(err);
-        assert(data.equals(inputBuffer));
-        resolve();
-      });
-    });
     port.write(inputBuffer.slice(0, 1));
-    port.write(inputBuffer.slice(1, 2));
-    await promise;
+    setTimeout(() => {
+      port.write(inputBuffer.slice(1, 2));
+    }, 5);
+    const data = await receiveData(port, 20, inputBuffer.length);
+    assert(data.equals(inputBuffer));
   });
 });
