@@ -1,6 +1,6 @@
-import Statics from "./statics.js";
+import Constants from "./constants.js";
 
-const startingBytes = [Statics.Resp_STK_INSYNC];
+const startingBytes = [Constants.Resp_STK_INSYNC];
 
 function receiveData(
   stream: NodeJS.ReadWriteStream,

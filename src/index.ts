@@ -1,4 +1,4 @@
-import Statics from "./lib/statics.js";
+import Constants from "./lib/constants.js";
 import sendCommand from "./lib/sendCommand.js";
 
 interface Board {
@@ -39,8 +39,8 @@ class STK500 {
     let tries = 1;
 
     const opt = {
-      cmd: [Statics.Cmnd_STK_GET_SYNC],
-      responseData: Statics.OK_RESPONSE,
+      cmd: [Constants.Cmnd_STK_GET_SYNC],
+      responseData: Constants.OK_RESPONSE,
       timeout: timeout,
     };
 
@@ -65,13 +65,13 @@ class STK500 {
   ): Promise<Buffer> {
     this.log("verify signature");
     const match = Buffer.concat([
-      Buffer.from([Statics.Resp_STK_INSYNC]),
+      Buffer.from([Constants.Resp_STK_INSYNC]),
       signature,
-      Buffer.from([Statics.Resp_STK_OK]),
+      Buffer.from([Constants.Resp_STK_OK]),
     ]);
 
     const opt = {
-      cmd: [Statics.Cmnd_STK_READ_SIGN],
+      cmd: [Constants.Cmnd_STK_READ_SIGN],
       responseLength: match.length,
       timeout: timeout,
     };
@@ -92,7 +92,7 @@ class STK500 {
   ): Promise<Buffer> {
     this.log("get signature");
     const opt = {
-      cmd: [Statics.Cmnd_STK_READ_SIGN],
+      cmd: [Constants.Cmnd_STK_READ_SIGN],
       responseLength: 5,
       timeout: timeout,
     };
@@ -110,7 +110,7 @@ class STK500 {
 
     const opt = {
       cmd: [
-        Statics.Cmnd_STK_SET_DEVICE,
+        Constants.Cmnd_STK_SET_DEVICE,
         options.devicecode || 0,
         options.revision || 0,
         options.progtype || 0,
@@ -132,7 +132,7 @@ class STK500 {
         options.flashsize2 || 0,
         options.flashsize1 || 0,
       ],
-      responseData: Statics.OK_RESPONSE,
+      responseData: Constants.OK_RESPONSE,
       timeout: timeout,
     };
 
@@ -146,8 +146,8 @@ class STK500 {
   ): Promise<Buffer> {
     this.log("send enter programming mode");
     const opt = {
-      cmd: [Statics.Cmnd_STK_ENTER_PROGMODE],
-      responseData: Statics.OK_RESPONSE,
+      cmd: [Constants.Cmnd_STK_ENTER_PROGMODE],
+      responseData: Constants.OK_RESPONSE,
       timeout: timeout,
     };
     const data = await sendCommand(stream, opt);
@@ -164,8 +164,8 @@ class STK500 {
     const addr_low = useaddr & 0xff;
     const addr_high = (useaddr >> 8) & 0xff;
     const opt = {
-      cmd: [Statics.Cmnd_STK_LOAD_ADDRESS, addr_low, addr_high],
-      responseData: Statics.OK_RESPONSE,
+      cmd: [Constants.Cmnd_STK_LOAD_ADDRESS, addr_low, addr_high],
+      responseData: Constants.OK_RESPONSE,
       timeout: timeout,
     };
     const data = await sendCommand(stream, opt);
@@ -183,14 +183,14 @@ class STK500 {
     const bytes_high = writeBytes.length >> 8;
 
     const cmd = Buffer.concat([
-      Buffer.from([Statics.Cmnd_STK_PROG_PAGE, bytes_high, bytes_low, 0x46]),
+      Buffer.from([Constants.Cmnd_STK_PROG_PAGE, bytes_high, bytes_low, 0x46]),
       writeBytes,
-      Buffer.from([Statics.Sync_CRC_EOP]),
+      Buffer.from([Constants.Sync_CRC_EOP]),
     ]);
 
     const opt = {
       cmd: cmd,
-      responseData: Statics.OK_RESPONSE,
+      responseData: Constants.OK_RESPONSE,
       timeout: timeout,
     };
     const data = await sendCommand(stream, opt);
@@ -247,8 +247,8 @@ class STK500 {
   ): Promise<Buffer> {
     this.log("send leave programming mode");
     const opt = {
-      cmd: [Statics.Cmnd_STK_LEAVE_PROGMODE],
-      responseData: Statics.OK_RESPONSE,
+      cmd: [Constants.Cmnd_STK_LEAVE_PROGMODE],
+      responseData: Constants.OK_RESPONSE,
       timeout: timeout,
     };
     const data = await sendCommand(stream, opt);
@@ -307,15 +307,20 @@ class STK500 {
   ): Promise<Buffer> {
     this.log("verify page");
     const match = Buffer.concat([
-      Buffer.from([Statics.Resp_STK_INSYNC]),
+      Buffer.from([Constants.Resp_STK_INSYNC]),
       writeBytes,
-      Buffer.from([Statics.Resp_STK_OK]),
+      Buffer.from([Constants.Resp_STK_OK]),
     ]);
 
     const size = writeBytes.length >= pageSize ? pageSize : writeBytes.length;
 
     const opt = {
-      cmd: [Statics.Cmnd_STK_READ_PAGE, (size >> 8) & 0xff, size & 0xff, 0x46],
+      cmd: [
+        Constants.Cmnd_STK_READ_PAGE,
+        (size >> 8) & 0xff,
+        size & 0xff,
+        0x46,
+      ],
       responseLength: match.length,
       timeout: timeout,
     };

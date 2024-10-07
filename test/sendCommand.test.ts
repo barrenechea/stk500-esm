@@ -1,7 +1,7 @@
 import { test, describe, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import Statics from "../src/lib/statics.js";
+import Constants from "../src/lib/constants.js";
 import sendCommand from "../src/lib/sendCommand.js";
 
 describe("sendCommands", () => {
@@ -22,10 +22,13 @@ describe("sendCommands", () => {
   });
 
   test("should write a buffer command", async () => {
-    const cmd = Buffer.from([Statics.Cmnd_STK_GET_SYNC, Statics.Sync_CRC_EOP]);
+    const cmd = Buffer.from([
+      Constants.Cmnd_STK_GET_SYNC,
+      Constants.Sync_CRC_EOP,
+    ]);
     const opt = {
       cmd: cmd,
-      responseData: Statics.OK_RESPONSE,
+      responseData: Constants.OK_RESPONSE,
       timeout: 10,
     };
 
@@ -37,18 +40,18 @@ describe("sendCommands", () => {
     };
 
     setTimeout(() => {
-      hardware.insert(Statics.OK_RESPONSE);
+      hardware.insert(Constants.OK_RESPONSE);
     }, 0);
 
     const data = await sendCommand(hardware, opt);
     assert(writeCalled);
-    assert(data.equals(Statics.OK_RESPONSE));
+    assert(data.equals(Constants.OK_RESPONSE));
   });
 
   test("should write an array command", async () => {
     const opt = {
-      cmd: [Statics.Cmnd_STK_GET_SYNC],
-      responseData: Statics.OK_RESPONSE,
+      cmd: [Constants.Cmnd_STK_GET_SYNC],
+      responseData: Constants.OK_RESPONSE,
       timeout: 10,
     };
 
@@ -57,25 +60,25 @@ describe("sendCommands", () => {
       writeCalled = true;
       assert(
         data.equals(
-          Buffer.from([Statics.Cmnd_STK_GET_SYNC, Statics.Sync_CRC_EOP])
+          Buffer.from([Constants.Cmnd_STK_GET_SYNC, Constants.Sync_CRC_EOP])
         )
       );
       callback(null, data);
     };
 
     setTimeout(() => {
-      hardware.insert(Statics.OK_RESPONSE);
+      hardware.insert(Constants.OK_RESPONSE);
     }, 0);
 
     const data = await sendCommand(hardware, opt);
     assert(writeCalled);
-    assert(data.equals(Statics.OK_RESPONSE));
+    assert(data.equals(Constants.OK_RESPONSE));
   });
 
   test("should timeout", async () => {
     const opt = {
-      cmd: [Statics.Cmnd_STK_GET_SYNC],
-      responseData: Statics.OK_RESPONSE,
+      cmd: [Constants.Cmnd_STK_GET_SYNC],
+      responseData: Constants.OK_RESPONSE,
       timeout: 10,
     };
 
@@ -86,31 +89,31 @@ describe("sendCommands", () => {
 
   test("should get n number of bytes", async () => {
     const opt = {
-      cmd: [Statics.Cmnd_STK_GET_SYNC],
+      cmd: [Constants.Cmnd_STK_GET_SYNC],
       responseLength: 2,
       timeout: 10,
     };
 
     setTimeout(() => {
-      hardware.insert(Statics.OK_RESPONSE);
+      hardware.insert(Constants.OK_RESPONSE);
     }, 0);
 
     const data = await sendCommand(hardware, opt);
-    assert(data.equals(Statics.OK_RESPONSE));
+    assert(data.equals(Constants.OK_RESPONSE));
   });
 
   test("should match response", async () => {
     const opt = {
-      cmd: [Statics.Cmnd_STK_GET_SYNC],
-      responseData: Statics.OK_RESPONSE,
+      cmd: [Constants.Cmnd_STK_GET_SYNC],
+      responseData: Constants.OK_RESPONSE,
       timeout: 10,
     };
 
     setTimeout(() => {
-      hardware.insert(Statics.OK_RESPONSE);
+      hardware.insert(Constants.OK_RESPONSE);
     }, 0);
 
     const data = await sendCommand(hardware, opt);
-    assert(data.equals(Statics.OK_RESPONSE));
+    assert(data.equals(Constants.OK_RESPONSE));
   });
 });

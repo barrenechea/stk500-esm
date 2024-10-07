@@ -1,5 +1,5 @@
 import receiveData from "./receiveData.js";
-import Statics from "./statics.js";
+import Constants from "./constants.js";
 
 interface SendCommandOptions {
   cmd: Buffer | number[];
@@ -28,7 +28,7 @@ async function sendCommand(
 
   let cmd = opt.cmd;
   if (Array.isArray(cmd)) {
-    cmd = Buffer.from(cmd.concat(Statics.Sync_CRC_EOP));
+    cmd = Buffer.from(cmd.concat(Constants.Sync_CRC_EOP));
   }
 
   try {
