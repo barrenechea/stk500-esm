@@ -1,141 +1,151 @@
-var sinon = require("sinon");
-var Statics = require('../lib/statics');
-var sendCommand = require('../lib/sendCommand');
-var es = require('event-stream');
+const { test, describe, beforeEach, afterEach } = require("node:test");
+const assert = require("node:assert/strict");
+const { EventEmitter } = require("node:events");
+const Statics = require("../lib/statics");
+const sendCommand = require("../lib/sendCommand");
 
-var EventEmitter = require('events').EventEmitter;
+describe("sendCommands", () => {
+  let hardware;
 
-var hardware = new EventEmitter();
-
-hardware.write = function(data, callback){
-  callback(null, data);
-};
-
-hardware.insert = function(data){
-  this.emit('data', data);
-};
-
-describe('sendCommands', function () {
-
-  var sandbox;
-
-  beforeEach(function() {
-    sandbox = sinon.sandbox.create();
+  beforeEach(() => {
+    hardware = new EventEmitter();
+    hardware.write = (data, callback) => {
+      callback(null, data);
+    };
+    hardware.insert = (data) => {
+      hardware.emit("data", data);
+    };
   });
 
-  afterEach(function () {
+  afterEach(() => {
     hardware.removeAllListeners();
-    sandbox.restore();
   });
 
-
-  it('should write a buffer command', function (done) {
-    var writeSpy = sandbox.spy(hardware, 'write');
-    var cmd = Buffer.from([Statics.Cmnd_STK_GET_SYNC, Statics.Sync_CRC_EOP]);
-    var opt = {
+  test("should write a buffer command", async (t) => {
+    const cmd = Buffer.from([Statics.Cmnd_STK_GET_SYNC, Statics.Sync_CRC_EOP]);
+    const opt = {
       cmd: cmd,
       responseData: Statics.OK_RESPONSE,
-      timeout: 10
+      timeout: 10,
     };
-    sendCommand(hardware, opt, function (err, data) {
-      var matched = writeSpy.args[0][0].equals(cmd);
-      Should.exist(matched);
-      matched.should.equal(true);
-      done();
+
+    let writeCalled = false;
+    hardware.write = (data, callback) => {
+      writeCalled = true;
+      assert(data.equals(cmd));
+      callback(null, data);
+    };
+
+    const promise = new Promise((resolve) => {
+      sendCommand(hardware, opt, (err, data) => {
+        assert.ifError(err);
+        assert(writeCalled);
+        resolve();
+      });
     });
-    process.nextTick(function(){
+
+    process.nextTick(() => {
       hardware.insert(Statics.OK_RESPONSE);
     });
+
+    await promise;
   });
 
-  it('should write an array command', function (done) {
-    var writeSpy = sandbox.spy(hardware, 'write');
-    var opt = {
-      cmd: [
-        Statics.Cmnd_STK_GET_SYNC
-      ],
+  test("should write an array command", async (t) => {
+    const opt = {
+      cmd: [Statics.Cmnd_STK_GET_SYNC],
       responseData: Statics.OK_RESPONSE,
-      timeout: 10
+      timeout: 10,
     };
-    sendCommand(hardware, opt, function (err, data) {
-      var matched = writeSpy.args[0][0].equals(Buffer.from([Statics.Cmnd_STK_GET_SYNC, Statics.Sync_CRC_EOP]));
-      Should.exist(matched);
-      matched.should.equal(true);
-      done();
+
+    let writeCalled = false;
+    hardware.write = (data, callback) => {
+      writeCalled = true;
+      assert(
+        data.equals(
+          Buffer.from([Statics.Cmnd_STK_GET_SYNC, Statics.Sync_CRC_EOP])
+        )
+      );
+      callback(null, data);
+    };
+
+    const promise = new Promise((resolve) => {
+      sendCommand(hardware, opt, (err, data) => {
+        assert.ifError(err);
+        assert(writeCalled);
+        resolve();
+      });
     });
-    process.nextTick(function(){
+
+    process.nextTick(() => {
       hardware.insert(Statics.OK_RESPONSE);
     });
+
+    await promise;
   });
 
-  it('should timeout', function (done) {
-    var opt = {
-      cmd: [
-        Statics.Cmnd_STK_GET_SYNC
-      ],
+  test("should timeout", async (t) => {
+    const opt = {
+      cmd: [Statics.Cmnd_STK_GET_SYNC],
       responseData: Statics.OK_RESPONSE,
-      timeout: 10
+      timeout: 10,
     };
 
-    sendCommand(hardware, opt, function (err, data) {
-      if (err) {
-        err.message.should.equal('Sending 3020: receiveData timeout after 10ms');
-        return done();
-      }
-      done(new Error('Did not time out'));
-      done();
+    const promise = new Promise((resolve) => {
+      sendCommand(hardware, opt, (err, data) => {
+        assert(err);
+        assert.equal(
+          err.message,
+          "Sending 3020: receiveData timeout after 10ms"
+        );
+        resolve();
+      });
     });
 
+    await promise;
   });
 
-  it('should get n number of bytes', function (done) {
-    var opt = {
-      cmd: [
-        Statics.Cmnd_STK_GET_SYNC
-      ],
+  test("should get n number of bytes", async (t) => {
+    const opt = {
+      cmd: [Statics.Cmnd_STK_GET_SYNC],
       responseLength: 2,
-      timeout: 10
+      timeout: 10,
     };
 
-    sendCommand(hardware, opt, function (err, data) {
-      if (err) {
-        return done(err);
-      }
-      Should.not.exist(err);
-      var matched = data.equals(Statics.OK_RESPONSE);
-      Should.exist(matched);
-      matched.should.equal(true);
-      done();
-
+    const promise = new Promise((resolve) => {
+      sendCommand(hardware, opt, (err, data) => {
+        assert.ifError(err);
+        assert(data.equals(Statics.OK_RESPONSE));
+        resolve();
+      });
     });
-    process.nextTick(function(){
+
+    process.nextTick(() => {
       hardware.insert(Statics.OK_RESPONSE);
     });
+
+    await promise;
   });
 
-  it('should match response', function (done) {
-    var opt = {
-      cmd: [
-        Statics.Cmnd_STK_GET_SYNC
-      ],
+  test("should match response", async (t) => {
+    const opt = {
+      cmd: [Statics.Cmnd_STK_GET_SYNC],
       responseData: Statics.OK_RESPONSE,
-      timeout: 10
+      timeout: 10,
     };
 
-    sendCommand(hardware, opt, function (err, data) {
-      if (err) {
-        return done(err);
-      }
-      Should.not.exist(err);
-      var matched = data.equals(Statics.OK_RESPONSE);
-      Should.exist(matched);
-      matched.should.equal(true);
-      done();
-
+    const promise = new Promise((resolve) => {
+      sendCommand(hardware, opt, (err, data) => {
+        assert.ifError(err);
+        assert(data.equals(Statics.OK_RESPONSE));
+        resolve();
+      });
     });
-    process.nextTick(function(){
+
+    process.nextTick(() => {
       hardware.insert(Statics.OK_RESPONSE);
     });
-  });
 
+    await promise;
+  });
 });

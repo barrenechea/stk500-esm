@@ -1,54 +1,58 @@
-var Statics = require('../lib/statics');
-var receiveData = require('../lib/receiveData');
-var es = require('event-stream');
+const { test, describe, beforeEach } = require("node:test");
+const assert = require("node:assert/strict");
+const Statics = require("../lib/statics");
+const receiveData = require("../lib/receiveData");
+const { Readable } = require("node:stream");
 
-describe('receiveData', function () {
-  beforeEach(function () {
-    this.port = es.through(function (data) {
-      this.emit('data', data);
+describe("receiveData", () => {
+  let port;
+
+  beforeEach(() => {
+    port = new Readable({
+      read() {},
     });
+    port.write = function (data) {
+      this.push(data);
+    };
   });
 
-  it('should receive a matching buffer', function (done) {
-    var inputBuffer = Statics.OK_RESPONSE;
-    receiveData(this.port, 10, inputBuffer.length, function (err, data) {
-      if (err) {
-        return done(err);
-      }
-      Should.not.exist(err);
-      var matched = data.equals(inputBuffer);
-      Should.exist(matched);
-      matched.should.equal(true);
-      done();
+  test("should receive a matching buffer", async (t) => {
+    const inputBuffer = Statics.OK_RESPONSE;
+    const promise = new Promise((resolve) => {
+      receiveData(port, 10, inputBuffer.length, (err, data) => {
+        assert.ifError(err);
+        assert(data.equals(inputBuffer));
+        resolve();
+      });
     });
-    this.port.write(inputBuffer);
+    port.write(inputBuffer);
+    await promise;
   });
 
-  it('should timeout', function (done) {
-    var inputBuffer = Statics.OK_RESPONSE;
-    receiveData(this.port, 10, inputBuffer.length, function (err, data) {
-      if (err) {
-        err.message.should.equal('receiveData timeout after 10ms');
-        return done();
-      }
-      done(new Error('Did not time out'));
+  test("should timeout", async (t) => {
+    const inputBuffer = Statics.OK_RESPONSE;
+    const promise = new Promise((resolve) => {
+      receiveData(port, 10, inputBuffer.length, (err, data) => {
+        assert(err);
+        assert.equal(err.message, "receiveData timeout after 10ms");
+        resolve();
+      });
     });
-    this.port.write(inputBuffer.slice(0, 1));
+    port.write(inputBuffer.slice(0, 1));
+    await promise;
   });
 
-  it('should receive a buffer in chunks', function (done) {
-    var inputBuffer = Statics.OK_RESPONSE;
-    receiveData(this.port, 10, inputBuffer.length, function (err, data) {
-      if (err) {
-        return done(err);
-      }
-      Should.not.exist(err);
-      var matched = data.equals(inputBuffer);
-      Should.exist(matched);
-      matched.should.equal(true);
-      done();
+  test("should receive a buffer in chunks", async (t) => {
+    const inputBuffer = Statics.OK_RESPONSE;
+    const promise = new Promise((resolve) => {
+      receiveData(port, 10, inputBuffer.length, (err, data) => {
+        assert.ifError(err);
+        assert(data.equals(inputBuffer));
+        resolve();
+      });
     });
-    this.port.write(inputBuffer.slice(0, 1));
-    this.port.write(inputBuffer.slice(1, 2));
+    port.write(inputBuffer.slice(0, 1));
+    port.write(inputBuffer.slice(1, 2));
+    await promise;
   });
 });

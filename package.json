@@ -7,7 +7,7 @@
     "example": "examples"
   },
   "scripts": {
-    "test": "mocha --include test/*.js test/*.js --reporter spec"
+    "test": "node --test test/*.js"
   },
   "repository": "https://github.com/jacobrosenthal/js-stk500v1",
   "keywords": [
@@ -21,11 +21,7 @@
     "async": "^0.9.0"
   },
   "devDependencies": {
-    "event-stream": "^3.1.7",
-    "mocha": "^2.0.1",
-    "should": "^4.4.1",
     "intel-hex": "^0.2.0",
-    "serialport": "^12.0.0",
-    "sinon": "^1.12.2"
+    "serialport": "^12.0.0"
   }
 }
