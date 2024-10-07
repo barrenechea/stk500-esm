@@ -1,12 +1,12 @@
 import fs from "fs/promises";
 import { SerialPort } from "serialport";
 import intel_hex from "intel-hex";
-import Stk500 from "../index.js";
+import Stk500 from "../src/index.js";
 
 const stk = new Stk500();
 
 const board = {
-  name: "Arduino Nano",
+  name: "Arduino Uno",
   baud: 115200,
   signature: Buffer.from([0x1e, 0x95, 0x0f]),
   pageSize: 128,
@@ -27,7 +27,7 @@ function createSerialPort(path, baudRate) {
 }
 
 async function closeSerialPort(serialPort) {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     serialPort.close((error) => {
       if (error) console.log(error);
       resolve();
@@ -38,7 +38,7 @@ async function closeSerialPort(serialPort) {
 async function upload(path) {
   let serialPort;
   try {
-    const hex = await readHexFile("arduino-2.3.3/nano/Blink.ino.hex");
+    const hex = await readHexFile("arduino-1.0.6/uno/StandardFirmata.cpp.hex");
     serialPort = await createSerialPort(path, board.baud);
     await stk.bootload(serialPort, hex, board, false);
     console.log("Programming SUCCESS!");

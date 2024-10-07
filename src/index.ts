@@ -1,12 +1,24 @@
 import Statics from "./lib/statics.js";
 import sendCommand from "./lib/sendCommand.js";
 
+interface Board {
+  name: string;
+  baud: number;
+  signature: Buffer;
+  pageSize: number;
+  timeout: number;
+}
+
+interface STK500Options {
+  quiet?: boolean;
+}
+
 class STK500 {
-  /** Create a new STK500 instance
-   * @param {Object} opts - Options
-   * @param {boolean} opts.quiet - If true, suppress log output
-   */
-  constructor(opts = {}) {
+  private opts: STK500Options;
+  private quiet: boolean;
+  private log: (...args: any[]) => void;
+
+  constructor(opts: STK500Options = {}) {
     this.opts = opts;
     this.quiet = this.opts.quiet || false;
     this.log = this.quiet
@@ -16,7 +28,11 @@ class STK500 {
       : console.log;
   }
 
-  async sync(stream, attempts, timeout) {
+  async sync(
+    stream: NodeJS.ReadWriteStream,
+    attempts: number,
+    timeout: number
+  ): Promise<Buffer> {
     this.log("sync");
     let tries = 1;
 
@@ -40,7 +56,11 @@ class STK500 {
     throw new Error("Sync failed after " + attempts + " attempts");
   }
 
-  async verifySignature(stream, signature, timeout) {
+  async verifySignature(
+    stream: NodeJS.ReadWriteStream,
+    signature: Buffer,
+    timeout: number
+  ): Promise<Buffer> {
     this.log("verify signature");
     const match = Buffer.concat([
       Buffer.from([Statics.Resp_STK_INSYNC]),
@@ -64,7 +84,10 @@ class STK500 {
     }
   }
 
-  async getSignature(stream, timeout) {
+  async getSignature(
+    stream: NodeJS.ReadWriteStream,
+    timeout: number
+  ): Promise<Buffer> {
     this.log("get signature");
     const opt = {
       cmd: [Statics.Cmnd_STK_READ_SIGN],
@@ -76,7 +99,11 @@ class STK500 {
     return data;
   }
 
-  async setOptions(stream, options, timeout) {
+  async setOptions(
+    stream: NodeJS.ReadWriteStream,
+    options: Record<string, number>,
+    timeout: number
+  ): Promise<void> {
     this.log("set device");
 
     const opt = {
@@ -111,7 +138,10 @@ class STK500 {
     this.log("setOptions", data);
   }
 
-  async enterProgrammingMode(stream, timeout) {
+  async enterProgrammingMode(
+    stream: NodeJS.ReadWriteStream,
+    timeout: number
+  ): Promise<Buffer> {
     this.log("send enter programming mode");
     const opt = {
       cmd: [Statics.Cmnd_STK_ENTER_PROGMODE],
@@ -123,7 +153,11 @@ class STK500 {
     return data;
   }
 
-  async loadAddress(stream, useaddr, timeout) {
+  async loadAddress(
+    stream: NodeJS.ReadWriteStream,
+    useaddr: number,
+    timeout: number
+  ): Promise<Buffer> {
     this.log("load address");
     const addr_low = useaddr & 0xff;
     const addr_high = (useaddr >> 8) & 0xff;
@@ -137,7 +171,11 @@ class STK500 {
     return data;
   }
 
-  async loadPage(stream, writeBytes, timeout) {
+  async loadPage(
+    stream: NodeJS.ReadWriteStream,
+    writeBytes: Buffer,
+    timeout: number
+  ): Promise<Buffer> {
     this.log("load page");
     const bytes_low = writeBytes.length & 0xff;
     const bytes_high = writeBytes.length >> 8;
@@ -158,7 +196,13 @@ class STK500 {
     return data;
   }
 
-  async upload(stream, hex, pageSize, timeout, use_8_bit_addresses) {
+  async upload(
+    stream: NodeJS.ReadWriteStream,
+    hex: Buffer,
+    pageSize: number,
+    timeout: number,
+    use_8_bit_addresses: boolean = false
+  ): Promise<void> {
     this.log("program");
 
     let pageaddr = 0;
@@ -195,7 +239,10 @@ class STK500 {
     this.log("upload done");
   }
 
-  async exitProgrammingMode(stream, timeout) {
+  async exitProgrammingMode(
+    stream: NodeJS.ReadWriteStream,
+    timeout: number
+  ): Promise<Buffer> {
     this.log("send leave programming mode");
     const opt = {
       cmd: [Statics.Cmnd_STK_LEAVE_PROGMODE],
@@ -207,7 +254,13 @@ class STK500 {
     return data;
   }
 
-  async verify(stream, hex, pageSize, timeout, use_8_bit_addresses) {
+  async verify(
+    stream: NodeJS.ReadWriteStream,
+    hex: Buffer,
+    pageSize: number,
+    timeout: number,
+    use_8_bit_addresses: boolean = false
+  ): Promise<void> {
     this.log("verify");
 
     let pageaddr = 0;
@@ -244,7 +297,12 @@ class STK500 {
     this.log("verify done");
   }
 
-  async verifyPage(stream, writeBytes, pageSize, timeout) {
+  async verifyPage(
+    stream: NodeJS.ReadWriteStream,
+    writeBytes: Buffer,
+    pageSize: number,
+    timeout: number
+  ): Promise<Buffer> {
     this.log("verify page");
     const match = Buffer.concat([
       Buffer.from([Statics.Resp_STK_INSYNC]),
@@ -264,37 +322,39 @@ class STK500 {
     return data;
   }
 
-  async bootload(stream, hex, opt, use_8_bit_addresses) {
+  async bootload(
+    stream: NodeJS.ReadWriteStream,
+    hex: Buffer,
+    opt: Board,
+    use_8_bit_addresses: boolean = false
+  ): Promise<void> {
+    // TODO: Are these calcs based on opt.pageSize okay? Not really sure
     const parameters = {
-      pagesizehigh: (opt.pagesizehigh << 8) & 0xff,
-      pagesizelow: opt.pagesizelow & 0xff,
+      pagesizehigh: (opt.pageSize << 8) & 0xff,
+      pagesizelow: opt.pageSize & 0xff,
     };
 
-    try {
-      await this.sync(stream, 3, opt.timeout);
-      await this.sync(stream, 3, opt.timeout);
-      await this.sync(stream, 3, opt.timeout);
-      await this.verifySignature(stream, opt.signature, opt.timeout);
-      await this.setOptions(stream, parameters, opt.timeout);
-      await this.enterProgrammingMode(stream, opt.timeout);
-      await this.upload(
-        stream,
-        hex,
-        opt.pageSize,
-        opt.timeout,
-        use_8_bit_addresses
-      );
-      await this.verify(
-        stream,
-        hex,
-        opt.pageSize,
-        opt.timeout,
-        use_8_bit_addresses
-      );
-      await this.exitProgrammingMode(stream, opt.timeout);
-    } catch (error) {
-      throw error;
-    }
+    await this.sync(stream, 3, opt.timeout);
+    await this.sync(stream, 3, opt.timeout);
+    await this.sync(stream, 3, opt.timeout);
+    await this.verifySignature(stream, opt.signature, opt.timeout);
+    await this.setOptions(stream, parameters, opt.timeout);
+    await this.enterProgrammingMode(stream, opt.timeout);
+    await this.upload(
+      stream,
+      hex,
+      opt.pageSize,
+      opt.timeout,
+      use_8_bit_addresses
+    );
+    await this.verify(
+      stream,
+      hex,
+      opt.pageSize,
+      opt.timeout,
+      use_8_bit_addresses
+    );
+    await this.exitProgrammingMode(stream, opt.timeout);
   }
 }
 

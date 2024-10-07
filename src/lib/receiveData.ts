@@ -2,13 +2,17 @@ import Statics from "./statics.js";
 
 const startingBytes = [Statics.Resp_STK_INSYNC];
 
-function receiveData(stream, timeout, responseLength) {
+function receiveData(
+  stream: NodeJS.ReadWriteStream,
+  timeout: number,
+  responseLength: number
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     let buffer = Buffer.alloc(0);
     let started = false;
-    let timeoutId = null;
+    let timeoutId: NodeJS.Timeout;
 
-    const handleChunk = (data) => {
+    const handleChunk = (data: Buffer) => {
       if (!started) {
         const startIndex = data.findIndex((byte) =>
           startingBytes.includes(byte)
@@ -32,7 +36,7 @@ function receiveData(stream, timeout, responseLength) {
       }
     };
 
-    const finished = (err) => {
+    const finished = (err?: Error) => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }

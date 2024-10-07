@@ -1,8 +1,8 @@
 import { test, describe, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import Statics from "../lib/statics.js";
-import sendCommand from "../lib/sendCommand.js";
+import Statics from "../src/lib/statics.js";
+import sendCommand from "../src/lib/sendCommand.js";
 
 describe("sendCommands", () => {
   let hardware;
