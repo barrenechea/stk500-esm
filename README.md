@@ -1,128 +1,99 @@
-## stk500
+# stk500-esm
 
-Fully javascript stk500v1 programmer. Allows you to program Arduinos straight from node (or browser for that matter -- see [browserdude](https://github.com/jacobrosenthal/browserdude). No more avrdude system calls or using the arduino IDE.
+A modern, ESM-compatible, TypeScript implementation of the STK500v1 protocol for programming Arduino boards directly from Node.js or the browser.
 
-Huge thanks to Pinoccio for their stk500v2 browser implementation (for Arduino Megas, etc) from which I stole whole lines of code. We're working to unify our programmers with some sort of overarching module. For now see [js-stk500](https://github.com/Pinoccio/js-stk500) to program Arduino Mega and Pinoccio's
+## Features
 
-### INSTALL
+- Full JavaScript/TypeScript implementation of the STK500v1 programmer
+- ESM (ECMAScript Modules) compatible
+- Can be used in Node.js or browser environments
+- No dependency on avrdude or the Arduino IDE
+- TypeScript support for improved developer experience
 
+## Installation
+
+```bash
+npm install stk500-esm
 ```
-npm i stk500@github:barrenechea/js-stk500v1
-```
 
-#### Program:
+## Usage
 
-You need a stream object, commonly [serialport](https://www.npmjs.com/package/serialport) with the correct speed for your chip (115200 for the uno) and path to your device :
+Here's a basic example of how to use stk500-esm to program an Arduino:
 
-```js
+```typescript
 import { SerialPort } from "serialport";
-
-const serialPort = new SerialPort({
-  path: "/dev/tty.something",
-  baudRate: 115200,
-});
-```
-
-We've included some examples hexes, and you can parse them with the [intel-hex](https://www.npmjs.com/package/intel-hex):
-
-```js
 import intel_hex from "intel-hex";
+import Stk500 from "stk500-esm";
 import fs from "fs/promises";
 
-const data = await fs.readFile("arduino-1.0.6/uno/StandardFirmata.cpp.hex", {
-  encoding: "utf8",
-});
-const hex = intel_hex.parse(data).data;
-```
-
-With [serialport](https://www.npmjs.com/package/serialport), you need to wait for your open event, but then you can bootload:
-
-```js
-import Stk500 from "stk500";
-
 const stk = new Stk500();
-const use_8_bit_addresseses = false; // use true for avr4809
-serialPort.on("open", async function () {
-  const board = {
-    signature: Buffer.from([0x1e, 0x95, 0x0f]),
-    pageSize: 128,
-    timeout: 400,
-  };
 
+const board = {
+  name: "Arduino Uno",
+  baud: 115200,
+  signature: Buffer.from([0x1e, 0x95, 0x0f]),
+  pageSize: 128,
+  timeout: 400,
+};
+
+async function upload(path: string) {
+  let serialPort;
   try {
-    await stk.bootload(serialPort, hex, board, use_8_bit_addresseses);
+    const hexData = await fs.readFile("path/to/your/sketch.hex", {
+      encoding: "utf8",
+    });
+    const hex = intel_hex.parse(hexData).data;
+    serialPort = new SerialPort({ path, baudRate: board.baud });
+    await stk.bootload(serialPort, hex, board, false);
+    console.log("Programming successful!");
   } catch (error) {
     console.error("Programming failed:", error);
   } finally {
     if (serialPort) {
-      await closeSerialPort(serialPort);
+      await serialPort.close();
     }
   }
-});
+}
+
+upload("/dev/ttyACM0"); // Replace with your Arduino's serial port
 ```
 
-### How to get a hex
+## Examples
 
-You can compile by hand yourself with avrdude if you know your stuff, or you can just steal one from Arduino. First make sure you have verbosity enabled in your Arduino preferences: Arduino Preferences -> check Show verbose output during Compilation. Now when you build you'll see a ton of lines on screen. The last couple lines have what you need:
+For more detailed examples, please check the `examples` folder in the repository. It contains several TypeScript files demonstrating how to use stk500-esm with different Arduino boards:
 
+- `avr4809.ts`: Example for AVR4809 based boards
+- `diecimila-duemilanove168.ts`: Example for Arduino Diecimila and Duemilanove (ATmega168)
+- `duemilanove328.ts`: Example for Arduino Duemilanove (ATmega328)
+- `nano.ts`: Example for Arduino Nano
+- `uno.ts`: Example for Arduino Uno
+
+These examples show how to set up the board configuration, read hex files, and upload them to the respective Arduino boards.
+
+To run an example, use:
+
+```bash
+npx tsx examples/uno.ts /dev/ttyACM0
 ```
-/var/folders/zp/bpw8zd0141j5zf7l8m_qtt8w0000gp/T/build6252696906929781517.tmp/Blink.cpp.hex
 
-Sketch uses 896 bytes (2%) of program storage space. Maximum is 32,256 bytes.
-Global variables use 9 bytes (0%) of dynamic memory, leaving 2,039 bytes for local variables. Maximum is 2,048 bytes.
-```
+Replace `uno.ts` with the appropriate example file and `/dev/ttyACM0` with your Arduino's serial port.
 
-Grab that hex file and you're good to go.
+## API
 
-### CHANGELOG
+The main class `Stk500` provides the following methods:
 
-0.0.1
-first
+- `bootload(stream: NodeJS.ReadWriteStream, hex: Buffer, opt: Board, use_8_bit_addresses = false): Promise<void>`
+- `sync(stream: NodeJS.ReadWriteStream, attempts: number, timeout: number): Promise<Buffer>`
+- `verifySignature(stream: NodeJS.ReadWriteStream, signature: Buffer, timeout: number): Promise<Buffer>`
+- `upload(stream: NodeJS.ReadWriteStream, hex: Buffer, pageSize: number, timeout: number, use_8_bit_addresses = false): Promise<void>`
+- `verify(stream: NodeJS.ReadWriteStream, hex: Buffer, pageSize: number, timeout: number, use_8_bit_addresses = false): Promise<void>`
 
-0.0.2
-Added loading from fs to example, some example hexes from arduino 1.0.6 for Uno, and instructions on how to find a hex file to load.
+For more detailed API information, please refer to the TypeScript definitions or the source code.
 
-0.0.3
-Bugs squashed leading to much more stable getsync and less attempts necessary to successfuly programmin. Slight refactor in example and clearer console.log messaging.
+## Contributing
 
-0.0.4
-Slight require change for browserfy-ability and a few more touchups in example
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-0.0.5
-Fixed instability issue especially in chrome where listeners were not being deregistered
+## License
 
-0.0.6
-Added ability to verify device signature.
-
-1.0.0
-
-- Nearly complete rearchitecture.
-- Moved away from constructor.
-- Take a stream object instead of an explicit node serial object now, though node serial is a stream so no change for most users.
-- No connect, reset or disconnect anymore, it is now your job to send it a recently reset (opened) connection thats ready to go.
-- Added verify command
-- Added bootload convenience function that takes a board options object
-- Added more examples
-
-  1.0.1
-  Clean up dependencies
-
-  1.0.2
-  Remove postinstall
-
-  1.0.3
-
-- Better errors
-- More Tests
-
-  2.0.0
-
-- convert module to constructor
-
-  2.0.1
-
-- fix timeout especially around Chrome OS 74
-
-  2.0.2
-
-- update Buffer methods to replace deprecated constructor use
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

@@ -1,7 +1,7 @@
 {
   "name": "stk500-esm",
   "version": "1.0.0",
-  "description": "Fully javascript stk500v1 programmer. Allows you to program Arduinos straight from node (or browser for that matter). No more avrdude system calls or using the arduino IDE.",
+  "description": "A modern, ESM-compatible, TypeScript implementation of the STK500v1 protocol for programming Arduino boards directly from Node.js or the browser.",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
