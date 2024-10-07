@@ -16,13 +16,13 @@ interface STK500Options {
 class STK500 {
   private opts: STK500Options;
   private quiet: boolean;
-  private log: (...args: any[]) => void;
+  private log: (...data: unknown[]) => void;
 
   constructor(opts: STK500Options = {}) {
     this.opts = opts;
-    this.quiet = this.opts.quiet || false;
+    this.quiet = this.opts.quiet ?? false;
     this.log = this.quiet
-      ? () => {}
+      ? () => { /* logging disabled */ }
       : typeof window === "object"
       ? console.log.bind(window)
       : console.log;
@@ -201,7 +201,7 @@ class STK500 {
     hex: Buffer,
     pageSize: number,
     timeout: number,
-    use_8_bit_addresses: boolean = false
+    use_8_bit_addresses = false
   ): Promise<void> {
     this.log("program");
 
@@ -259,7 +259,7 @@ class STK500 {
     hex: Buffer,
     pageSize: number,
     timeout: number,
-    use_8_bit_addresses: boolean = false
+    use_8_bit_addresses = false
   ): Promise<void> {
     this.log("verify");
 
@@ -326,7 +326,7 @@ class STK500 {
     stream: NodeJS.ReadWriteStream,
     hex: Buffer,
     opt: Board,
-    use_8_bit_addresses: boolean = false
+    use_8_bit_addresses = false
   ): Promise<void> {
     // TODO: Are these calcs based on opt.pageSize okay? Not really sure
     const parameters = {

@@ -16,14 +16,14 @@ describe("receiveData", () => {
     };
   });
 
-  test("should receive a matching buffer", async (t) => {
+  test("should receive a matching buffer", async () => {
     const inputBuffer = Statics.OK_RESPONSE;
     port.write(inputBuffer);
     const data = await receiveData(port, 10, inputBuffer.length);
     assert(data.equals(inputBuffer));
   });
 
-  test("should timeout", async (t) => {
+  test("should timeout", async () => {
     const inputBuffer = Statics.OK_RESPONSE;
     port.write(inputBuffer.slice(0, 1));
     await assert.rejects(receiveData(port, 10, inputBuffer.length), {
@@ -31,7 +31,7 @@ describe("receiveData", () => {
     });
   });
 
-  test("should receive a buffer in chunks", async (t) => {
+  test("should receive a buffer in chunks", async () => {
     const inputBuffer = Statics.OK_RESPONSE;
     port.write(inputBuffer.slice(0, 1));
     setTimeout(() => {

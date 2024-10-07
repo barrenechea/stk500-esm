@@ -21,7 +21,7 @@ describe("sendCommands", () => {
     hardware.removeAllListeners();
   });
 
-  test("should write a buffer command", async (t) => {
+  test("should write a buffer command", async () => {
     const cmd = Buffer.from([Statics.Cmnd_STK_GET_SYNC, Statics.Sync_CRC_EOP]);
     const opt = {
       cmd: cmd,
@@ -45,7 +45,7 @@ describe("sendCommands", () => {
     assert(data.equals(Statics.OK_RESPONSE));
   });
 
-  test("should write an array command", async (t) => {
+  test("should write an array command", async () => {
     const opt = {
       cmd: [Statics.Cmnd_STK_GET_SYNC],
       responseData: Statics.OK_RESPONSE,
@@ -72,7 +72,7 @@ describe("sendCommands", () => {
     assert(data.equals(Statics.OK_RESPONSE));
   });
 
-  test("should timeout", async (t) => {
+  test("should timeout", async () => {
     const opt = {
       cmd: [Statics.Cmnd_STK_GET_SYNC],
       responseData: Statics.OK_RESPONSE,
@@ -84,7 +84,7 @@ describe("sendCommands", () => {
     });
   });
 
-  test("should get n number of bytes", async (t) => {
+  test("should get n number of bytes", async () => {
     const opt = {
       cmd: [Statics.Cmnd_STK_GET_SYNC],
       responseLength: 2,
@@ -99,7 +99,7 @@ describe("sendCommands", () => {
     assert(data.equals(Statics.OK_RESPONSE));
   });
 
-  test("should match response", async (t) => {
+  test("should match response", async () => {
     const opt = {
       cmd: [Statics.Cmnd_STK_GET_SYNC],
       responseData: Statics.OK_RESPONSE,
