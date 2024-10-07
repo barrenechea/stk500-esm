@@ -1,15 +1,9 @@
-import fs from "fs";
+import fs from "fs/promises";
 import { SerialPort } from "serialport";
 import intel_hex from "intel-hex";
-import Stk500 from "../index.js";
+import Stk500 from "../src/index.js";
 
 const stk = new Stk500();
-
-const data = fs.readFileSync("arduino-1.0.6/168/StandardFirmata.cpp.hex", {
-  encoding: "utf8",
-});
-
-const hex = intel_hex.parse(data).data;
 
 const board = {
   name: "Diecimila / Duemilanove 168",
@@ -19,31 +13,51 @@ const board = {
   timeout: 400,
 };
 
-function upload(path, done) {
-  const serialPort = new SerialPort({
-    path,
-    baudRate: board.baud,
+async function readHexFile(filePath) {
+  const data = await fs.readFile(filePath, { encoding: "utf8" });
+  return intel_hex.parse(data).data;
+}
+
+function createSerialPort(path, baudRate) {
+  return new Promise((resolve, reject) => {
+    const serialPort = new SerialPort({ path, baudRate });
+    serialPort.on("open", () => resolve(serialPort));
+    serialPort.on("error", reject);
   });
+}
 
-  serialPort.on("open", function () {
-    stk.bootload(serialPort, hex, board, false, function (error) {
-      serialPort.close(function (error) {
-        console.log(error);
-      });
-
-      done(error);
+async function closeSerialPort(serialPort) {
+  return new Promise((resolve) => {
+    serialPort.close((error) => {
+      if (error) console.log(error);
+      resolve();
     });
   });
 }
 
-if (process && process.argv && process.argv[2]) {
-  upload(process.argv[2], function (error) {
-    if (!error) {
-      console.log("programing SUCCESS!");
-      process.exit(0);
+async function upload(path) {
+  let serialPort;
+  try {
+    const hex = await readHexFile("arduino-1.0.6/168/StandardFirmata.cpp.hex");
+    serialPort = await createSerialPort(path, board.baud);
+    await stk.bootload(serialPort, hex, board, false);
+    console.log("Programming SUCCESS!");
+  } catch (error) {
+    console.error("Programming failed:", error);
+  } finally {
+    if (serialPort) {
+      await closeSerialPort(serialPort);
     }
-  });
-} else {
-  console.log("call with a path like /dev/tty.something");
+  }
+}
+
+async function main() {
+  if (process.argv[2]) {
+    await upload(process.argv[2]);
+  } else {
+    console.log("Call with a path like /dev/tty.something");
+  }
   process.exit(0);
 }
+
+main().catch(console.error);

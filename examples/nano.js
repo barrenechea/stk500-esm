@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import { SerialPort } from "serialport";
 import intel_hex from "intel-hex";
-import Stk500 from "../index.js";
+import Stk500 from "../src/index.js";
 
 const stk = new Stk500();
 
