@@ -40,7 +40,7 @@ async function upload(path) {
   try {
     const hex = await readHexFile("arduino-1.0.6/168/avr4809.cpp.hex");
     serialPort = await createSerialPort(path, board.baud);
-    await stk.bootload(serialPort, hex, board, false);
+    await stk.bootload(serialPort, hex, board, true);
     console.log("Programming SUCCESS!");
   } catch (error) {
     console.error("Programming failed:", error);

@@ -22,7 +22,9 @@ class STK500 {
     this.opts = opts;
     this.quiet = this.opts.quiet ?? false;
     this.log = this.quiet
-      ? () => { /* logging disabled */ }
+      ? () => {
+          /* logging disabled */
+        }
       : typeof window === "object"
       ? console.log.bind(window)
       : console.log;
@@ -201,7 +203,7 @@ class STK500 {
     hex: Buffer,
     pageSize: number,
     timeout: number,
-    use_8_bit_addresses = false
+    use8BitAddresses = false
   ): Promise<void> {
     this.log("program");
 
@@ -213,7 +215,7 @@ class STK500 {
       this.log("program page");
 
       try {
-        useaddr = use_8_bit_addresses ? pageaddr : pageaddr >> 1;
+        useaddr = use8BitAddresses ? pageaddr : pageaddr >> 1;
 
         await this.loadAddress(stream, useaddr, timeout);
 
@@ -259,7 +261,7 @@ class STK500 {
     hex: Buffer,
     pageSize: number,
     timeout: number,
-    use_8_bit_addresses = false
+    use8BitAddresses = false
   ): Promise<void> {
     this.log("verify");
 
@@ -271,7 +273,7 @@ class STK500 {
       this.log("verify page");
 
       try {
-        useaddr = use_8_bit_addresses ? pageaddr : pageaddr >> 1;
+        useaddr = use8BitAddresses ? pageaddr : pageaddr >> 1;
 
         await this.loadAddress(stream, useaddr, timeout);
 
@@ -326,7 +328,7 @@ class STK500 {
     stream: NodeJS.ReadWriteStream,
     hex: Buffer,
     opt: Board,
-    use_8_bit_addresses = false
+    use8BitAddresses = false
   ): Promise<void> {
     // TODO: Are these calcs based on opt.pageSize okay? Not really sure
     const parameters = {
@@ -340,20 +342,8 @@ class STK500 {
     await this.verifySignature(stream, opt.signature, opt.timeout);
     await this.setOptions(stream, parameters, opt.timeout);
     await this.enterProgrammingMode(stream, opt.timeout);
-    await this.upload(
-      stream,
-      hex,
-      opt.pageSize,
-      opt.timeout,
-      use_8_bit_addresses
-    );
-    await this.verify(
-      stream,
-      hex,
-      opt.pageSize,
-      opt.timeout,
-      use_8_bit_addresses
-    );
+    await this.upload(stream, hex, opt.pageSize, opt.timeout, use8BitAddresses);
+    await this.verify(stream, hex, opt.pageSize, opt.timeout, use8BitAddresses);
     await this.exitProgrammingMode(stream, opt.timeout);
   }
 }
