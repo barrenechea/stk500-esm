@@ -1,18 +1,18 @@
 import receiveData from "./receiveData.js";
 import Statics from "./statics.js";
 
-type SendCommandOptions = {
+interface SendCommandOptions {
   cmd: Buffer | number[];
   timeout?: number;
   responseData?: Buffer;
   responseLength?: number;
-};
+}
 
 async function sendCommand(
   stream: NodeJS.ReadWriteStream,
   opt: SendCommandOptions
 ): Promise<Buffer> {
-  const timeout = opt.timeout || 0;
+  const timeout = opt.timeout ?? 0;
   let responseData = null;
   let responseLength = 0;
 
@@ -46,7 +46,7 @@ async function sendCommand(
 
     if (responseData && !data.equals(responseData)) {
       throw new Error(
-        `${cmd} response mismatch: ${data.toString(
+        `${cmd.toString("hex")} response mismatch: ${data.toString(
           "hex"
         )}, ${responseData.toString("hex")}`
       );
