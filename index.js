@@ -1,8 +1,12 @@
-const async = require("async");
-const Statics = require("./lib/statics");
-const sendCommand = require("./lib/sendCommand");
+import async from "async";
+import Statics from "./lib/statics.js";
+import sendCommand from "./lib/sendCommand.js";
 
 class STK500 {
+  /** Create a new STK500 instance
+   * @param {Object} opts - Options
+   * @param {boolean} opts.quiet - If true, suppress log output
+   */
   constructor(opts = {}) {
     this.opts = opts;
     this.quiet = this.opts.quiet || false;
@@ -343,4 +347,4 @@ class STK500 {
   }
 }
 
-module.exports = STK500;
+export default STK500;

@@ -1,8 +1,8 @@
-const { test, describe, beforeEach } = require("node:test");
-const assert = require("node:assert/strict");
-const Statics = require("../lib/statics");
-const receiveData = require("../lib/receiveData");
-const { Readable } = require("node:stream");
+import { test, describe, beforeEach } from "node:test";
+import assert from "node:assert/strict";
+import Statics from "../lib/statics.js";
+import receiveData from "../lib/receiveData.js";
+import { Readable } from "node:stream";
 
 describe("receiveData", () => {
   let port;
