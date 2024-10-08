@@ -7,7 +7,7 @@ const stk = new Stk500();
 
 const board = {
   name: "ATmega4809",
-  baud: 19200,
+  baudRate: 19200,
   signature: Buffer.from([0x1e, 0x94, 0x06]),
   pageSize: 128,
   timeout: 400,
@@ -39,7 +39,7 @@ async function upload(path) {
   let serialPort;
   try {
     const hex = await readHexFile("arduino-1.0.6/168/avr4809.cpp.hex");
-    serialPort = await createSerialPort(path, board.baud);
+    serialPort = await createSerialPort(path, board.baudRate);
     await stk.bootload(serialPort, hex, board, true);
     console.log("Programming SUCCESS!");
   } catch (error) {

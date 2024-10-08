@@ -30,7 +30,7 @@ const stk = new Stk500();
 
 const board = {
   name: "Arduino Uno",
-  baud: 115200,
+  baudRate: 115200,
   signature: Buffer.from([0x1e, 0x95, 0x0f]),
   pageSize: 128,
   timeout: 400,

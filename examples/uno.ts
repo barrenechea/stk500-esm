@@ -7,7 +7,7 @@ const stk = new Stk500();
 
 const board = {
   name: "Arduino Uno",
-  baud: 115200,
+  baudRate: 115200,
   signature: Buffer.from([0x1e, 0x95, 0x0f]),
   pageSize: 128,
   timeout: 400,
@@ -39,7 +39,7 @@ async function upload(path) {
   let serialPort;
   try {
     const hex = await readHexFile("arduino-1.0.6/uno/StandardFirmata.cpp.hex");
-    serialPort = await createSerialPort(path, board.baud);
+    serialPort = await createSerialPort(path, board.baudRate);
     await stk.bootload(serialPort, hex, board, false);
     console.log("Programming SUCCESS!");
   } catch (error) {

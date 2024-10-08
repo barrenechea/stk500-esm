@@ -3,7 +3,7 @@ import sendCommand from "./lib/sendCommand.js";
 
 interface Board {
   name: string;
-  baud: number;
+  baudRate: number;
   signature: Buffer;
   pageSize: number;
   timeout: number;
