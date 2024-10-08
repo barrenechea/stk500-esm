@@ -1,17 +1,30 @@
 import Constants from "./lib/constants.js";
 import sendCommand from "./lib/sendCommand.js";
-import { parseIntelHex } from "./lib/intelHexParser.js";
+import parseIntelHex from "./lib/intelHexParser.js";
 
+/**
+ * Represents the configuration for a specific board.
+ */
 export interface Board {
+  /** The name of the board. */
   name: string;
+  /** The baud rate for communication with the board. */
   baudRate: number;
+  /** The expected signature of the board. */
   signature: Buffer;
+  /** The page size for programming operations. */
   pageSize: number;
+  /** The timeout duration for operations in milliseconds. */
   timeout: number;
+  /** Whether to use 8-bit addresses for memory operations. */
   use8BitAddresses?: boolean;
 }
 
+/**
+ * Options for configuring the STK500 instance.
+ */
 interface STK500Options {
+  /** Whether to suppress logging output. */
   quiet?: boolean;
 }
 
@@ -28,6 +41,14 @@ class STK500 {
       : console.log;
   }
 
+  /**
+   * Attempts to synchronize communication with the device.
+   * @param stream - The read/write stream for communication.
+   * @param attempts - The number of synchronization attempts.
+   * @param timeout - The timeout duration for each attempt in milliseconds.
+   * @returns A promise that resolves with the synchronization response buffer.
+   * @throws Error if synchronization fails after all attempts.
+   */
   async sync(
     stream: NodeJS.ReadWriteStream,
     attempts: number,
@@ -56,6 +77,14 @@ class STK500 {
     throw new Error("Sync failed after " + attempts + " attempts");
   }
 
+  /**
+   * Verifies the device signature.
+   * @param stream - The read/write stream for communication.
+   * @param signature - The expected device signature.
+   * @param timeout - The timeout duration in milliseconds.
+   * @returns A promise that resolves with the verification response buffer.
+   * @throws Error if the signature verification fails.
+   */
   async verifySignature(
     stream: NodeJS.ReadWriteStream,
     signature: Buffer,
@@ -84,6 +113,12 @@ class STK500 {
     }
   }
 
+  /**
+   * Retrieves the device signature.
+   * @param stream - The read/write stream for communication.
+   * @param timeout - The timeout duration in milliseconds.
+   * @returns A promise that resolves with the device signature buffer.
+   */
   async getSignature(
     stream: NodeJS.ReadWriteStream,
     timeout: number
@@ -99,6 +134,13 @@ class STK500 {
     return data;
   }
 
+  /**
+   * Sets device-specific options.
+   * @param stream - The read/write stream for communication.
+   * @param options - An object containing device-specific options.
+   * @param timeout - The timeout duration in milliseconds.
+   * @returns A promise that resolves when the options are set.
+   */
   async setOptions(
     stream: NodeJS.ReadWriteStream,
     options: Record<string, number>,
@@ -138,6 +180,12 @@ class STK500 {
     this.log("setOptions", data);
   }
 
+  /**
+   * Enters programming mode on the device.
+   * @param stream - The read/write stream for communication.
+   * @param timeout - The timeout duration in milliseconds.
+   * @returns A promise that resolves with the response buffer.
+   */
   async enterProgrammingMode(
     stream: NodeJS.ReadWriteStream,
     timeout: number
@@ -153,6 +201,13 @@ class STK500 {
     return data;
   }
 
+  /**
+   * Loads a memory address for subsequent operations.
+   * @param stream - The read/write stream for communication.
+   * @param useaddr - The address to load.
+   * @param timeout - The timeout duration in milliseconds.
+   * @returns A promise that resolves with the response buffer.
+   */
   async loadAddress(
     stream: NodeJS.ReadWriteStream,
     useaddr: number,
@@ -171,6 +226,13 @@ class STK500 {
     return data;
   }
 
+  /**
+   * Loads a page of data to be programmed.
+   * @param stream - The read/write stream for communication.
+   * @param writeBytes - The buffer containing the data to be programmed.
+   * @param timeout - The timeout duration in milliseconds.
+   * @returns A promise that resolves with the response buffer.
+   */
   async loadPage(
     stream: NodeJS.ReadWriteStream,
     writeBytes: Buffer,
@@ -196,6 +258,15 @@ class STK500 {
     return data;
   }
 
+  /**
+   * Uploads the provided hex data to the device.
+   * @param stream - The read/write stream for communication.
+   * @param hexData - The hex data to be uploaded, as a string or buffer.
+   * @param pageSize - The page size for programming.
+   * @param timeout - The timeout duration in milliseconds.
+   * @param use8BitAddresses - Whether to use 8-bit addresses (default: false).
+   * @returns A promise that resolves when the upload is complete.
+   */
   async upload(
     stream: NodeJS.ReadWriteStream,
     hexData: string | Buffer,
@@ -242,6 +313,12 @@ class STK500 {
     this.log("upload done");
   }
 
+  /**
+   * Exits programming mode on the device.
+   * @param stream - The read/write stream for communication.
+   * @param timeout - The timeout duration in milliseconds.
+   * @returns A promise that resolves with the response buffer.
+   */
   async exitProgrammingMode(
     stream: NodeJS.ReadWriteStream,
     timeout: number
@@ -257,6 +334,15 @@ class STK500 {
     return data;
   }
 
+  /**
+   * Verifies the uploaded data against the provided hex data.
+   * @param stream - The read/write stream for communication.
+   * @param hexData - The hex data to verify against, as a string or buffer.
+   * @param pageSize - The page size for verification.
+   * @param timeout - The timeout duration in milliseconds.
+   * @param use8BitAddresses - Whether to use 8-bit addresses (default: false).
+   * @returns A promise that resolves when verification is complete.
+   */
   async verify(
     stream: NodeJS.ReadWriteStream,
     hexData: string | Buffer,
@@ -303,6 +389,14 @@ class STK500 {
     this.log("verify done");
   }
 
+  /**
+   * Verifies a single page of data.
+   * @param stream - The read/write stream for communication.
+   * @param writeBytes - The buffer containing the data to be verified.
+   * @param pageSize - The page size for verification.
+   * @param timeout - The timeout duration in milliseconds.
+   * @returns A promise that resolves with the verification response buffer.
+   */
   async verifyPage(
     stream: NodeJS.ReadWriteStream,
     writeBytes: Buffer,
@@ -333,6 +427,13 @@ class STK500 {
     return data;
   }
 
+  /**
+   * Performs the complete bootloading process for a device.
+   * @param stream - The read/write stream for communication.
+   * @param hexData - The hex data to be uploaded, as a string or buffer.
+   * @param opt - The board configuration options.
+   * @returns A promise that resolves when the bootloading process is complete.
+   */
   async bootload(
     stream: NodeJS.ReadWriteStream,
     hexData: string | Buffer,

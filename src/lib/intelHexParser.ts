@@ -9,13 +9,28 @@ const START_LINEAR_ADDR = 5;
 
 const EMPTY_VALUE = 0xff;
 
+/**
+ * Represents the result of parsing Intel HEX data.
+ */
 interface ParseResult {
+  /** The parsed data as a Buffer. */
   data: Buffer;
+  /** The start segment address, if present in the HEX data. */
   startSegmentAddress: number | null;
+  /** The start linear address, if present in the HEX data. */
   startLinearAddress: number | null;
 }
 
-export function parseIntelHex(
+/**
+ * Parses Intel HEX format data into a binary buffer.
+ *
+ * @param data - The Intel HEX data to parse, as a string or Buffer.
+ * @param bufferSize - The initial size of the buffer to allocate (default: 8192).
+ * @param addressOffset - An offset to apply to all addresses in the HEX data (default: 0).
+ * @returns An object containing the parsed binary data and any start addresses found.
+ * @throws Will throw an error if the HEX data is invalid or parsing fails.
+ */
+export default function parseIntelHex(
   data: string | Buffer,
   bufferSize?: number,
   addressOffset?: number

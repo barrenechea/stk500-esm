@@ -2,7 +2,16 @@ import Constants from "./constants.js";
 
 const startingBytes = [Constants.Resp_STK_INSYNC];
 
-function receiveData(
+/**
+ * Receives data from a stream, looking for specific starting bytes.
+ *
+ * @param stream - The read/write stream to receive data from.
+ * @param timeout - The maximum time to wait for data, in milliseconds.
+ * @param responseLength - The expected length of the response.
+ * @returns A promise that resolves with the received data as a Buffer.
+ * @throws Will throw an error if the timeout is reached or if the received data exceeds the expected length.
+ */
+export default function receiveData(
   stream: NodeJS.ReadWriteStream,
   timeout: number,
   responseLength: number
@@ -58,5 +67,3 @@ function receiveData(
     stream.on("data", handleChunk);
   });
 }
-
-export default receiveData;

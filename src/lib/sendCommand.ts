@@ -1,14 +1,29 @@
 import receiveData from "./receiveData.js";
 import Constants from "./constants.js";
 
+/**
+ * Options for sending a command to the device.
+ */
 interface SendCommandOptions {
+  /** The command to send, as a Buffer or array of numbers. */
   cmd: Buffer | number[];
+  /** The timeout duration in milliseconds (optional). */
   timeout?: number;
+  /** The expected response data (optional). */
   responseData?: Buffer;
+  /** The expected length of the response (optional). */
   responseLength?: number;
 }
 
-async function sendCommand(
+/**
+ * Sends a command to the device and waits for a response.
+ *
+ * @param stream - The read/write stream for communication with the device.
+ * @param opt - Options for the command, including the command itself and response expectations.
+ * @returns A promise that resolves with the response data as a Buffer.
+ * @throws Will throw an error if sending fails, if the response doesn't match expectations, or if a timeout occurs.
+ */
+export default async function sendCommand(
   stream: NodeJS.ReadWriteStream,
   opt: SendCommandOptions
 ): Promise<Buffer> {
@@ -61,5 +76,3 @@ async function sendCommand(
     );
   }
 }
-
-export default sendCommand;
