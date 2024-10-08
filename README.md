@@ -24,11 +24,11 @@ Here's a basic example of how to use stk500-esm to program an Arduino:
 ```typescript
 import { SerialPort } from "serialport";
 import fs from "fs/promises";
-import Stk500 from "stk500-esm";
+import STK500, { type Board } from "stk500-esm";
 
-const stk = new Stk500();
+const stk = new STK500();
 
-const board = {
+const board: Board = {
   name: "Arduino Uno",
   baudRate: 115200,
   signature: Buffer.from([0x1e, 0x95, 0x0f]),
@@ -43,7 +43,7 @@ async function upload(path: string) {
       encoding: "utf8",
     });
     serialPort = new SerialPort({ path, baudRate: board.baud });
-    await stk.bootload(serialPort, hexData, board, false);
+    await stk.bootload(serialPort, hexData, board);
     console.log("Programming successful!");
   } catch (error) {
     console.error("Programming failed:", error);
@@ -80,13 +80,13 @@ Replace `uno.ts` with the appropriate example file and `/dev/ttyACM0` with your 
 
 ## API
 
-The main class `Stk500` provides the following methods:
+The main class `STK500` provides the following methods:
 
-- `bootload(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, opt: Board, use_8_bit_addresses = false): Promise<void>`
+- `bootload(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, opt: Board): Promise<void>`
 - `sync(stream: NodeJS.ReadWriteStream, attempts: number, timeout: number): Promise<Buffer>`
 - `verifySignature(stream: NodeJS.ReadWriteStream, signature: Buffer, timeout: number): Promise<Buffer>`
-- `upload(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, pageSize: number, timeout: number, use_8_bit_addresses = false): Promise<void>`
-- `verify(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, pageSize: number, timeout: number, use_8_bit_addresses = false): Promise<void>`
+- `upload(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, pageSize: number, timeout: number, use8BitAddresses = false): Promise<void>`
+- `verify(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, pageSize: number, timeout: number, use8BitAddresses = false): Promise<void>`
 
 For more detailed API information, please refer to the TypeScript definitions or the source code.
 

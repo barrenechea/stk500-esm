@@ -2,12 +2,13 @@ import Constants from "./lib/constants.js";
 import sendCommand from "./lib/sendCommand.js";
 import { parseIntelHex } from "./lib/intelHexParser.js";
 
-interface Board {
+export interface Board {
   name: string;
   baudRate: number;
   signature: Buffer;
   pageSize: number;
   timeout: number;
+  use8BitAddresses?: boolean;
 }
 
 interface STK500Options {
@@ -15,14 +16,10 @@ interface STK500Options {
 }
 
 class STK500 {
-  private opts: STK500Options;
-  private quiet: boolean;
   private log: (...data: unknown[]) => void;
 
   constructor(opts: STK500Options = {}) {
-    this.opts = opts;
-    this.quiet = this.opts.quiet ?? false;
-    this.log = this.quiet
+    this.log = opts.quiet
       ? () => {
           /* logging disabled */
         }
@@ -339,8 +336,7 @@ class STK500 {
   async bootload(
     stream: NodeJS.ReadWriteStream,
     hexData: string | Buffer,
-    opt: Board,
-    use8BitAddresses = false
+    opt: Board
   ): Promise<void> {
     // TODO: Are these calcs based on opt.pageSize okay? Not really sure
     const parameters = {
@@ -359,14 +355,14 @@ class STK500 {
       hexData,
       opt.pageSize,
       opt.timeout,
-      use8BitAddresses
+      opt.use8BitAddresses ?? false
     );
     await this.verify(
       stream,
       hexData,
       opt.pageSize,
       opt.timeout,
-      use8BitAddresses
+      opt.use8BitAddresses ?? false
     );
     await this.exitProgrammingMode(stream, opt.timeout);
   }
