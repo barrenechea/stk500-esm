@@ -1,5 +1,6 @@
 import Constants from "./lib/constants.js";
 import sendCommand from "./lib/sendCommand.js";
+import { parseIntelHex } from "./lib/intelHexParser.js";
 
 interface Board {
   name: string;
@@ -200,12 +201,15 @@ class STK500 {
 
   async upload(
     stream: NodeJS.ReadWriteStream,
-    hex: Buffer,
+    hexData: string | Buffer,
     pageSize: number,
     timeout: number,
     use8BitAddresses = false
   ): Promise<void> {
     this.log("program");
+
+    // Parse the Intel HEX data
+    const { data: hex } = parseIntelHex(hexData);
 
     let pageaddr = 0;
     let writeBytes;
@@ -258,12 +262,15 @@ class STK500 {
 
   async verify(
     stream: NodeJS.ReadWriteStream,
-    hex: Buffer,
+    hexData: string | Buffer,
     pageSize: number,
     timeout: number,
     use8BitAddresses = false
   ): Promise<void> {
     this.log("verify");
+
+    // Parse the Intel HEX data
+    const { data: hex } = parseIntelHex(hexData);
 
     let pageaddr = 0;
     let writeBytes;
@@ -331,7 +338,7 @@ class STK500 {
 
   async bootload(
     stream: NodeJS.ReadWriteStream,
-    hex: Buffer,
+    hexData: string | Buffer,
     opt: Board,
     use8BitAddresses = false
   ): Promise<void> {
@@ -347,8 +354,20 @@ class STK500 {
     await this.verifySignature(stream, opt.signature, opt.timeout);
     await this.setOptions(stream, parameters, opt.timeout);
     await this.enterProgrammingMode(stream, opt.timeout);
-    await this.upload(stream, hex, opt.pageSize, opt.timeout, use8BitAddresses);
-    await this.verify(stream, hex, opt.pageSize, opt.timeout, use8BitAddresses);
+    await this.upload(
+      stream,
+      hexData,
+      opt.pageSize,
+      opt.timeout,
+      use8BitAddresses
+    );
+    await this.verify(
+      stream,
+      hexData,
+      opt.pageSize,
+      opt.timeout,
+      use8BitAddresses
+    );
     await this.exitProgrammingMode(stream, opt.timeout);
   }
 }

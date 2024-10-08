@@ -9,6 +9,7 @@ A modern, ESM-compatible, TypeScript implementation of the STK500v1 protocol for
 - Can be used in Node.js or browser environments
 - No dependency on avrdude or the Arduino IDE
 - TypeScript support for improved developer experience
+- **Built-in Intel HEX parsing** (no need for external parsing libraries)
 
 ## Installation
 
@@ -22,9 +23,8 @@ Here's a basic example of how to use stk500-esm to program an Arduino:
 
 ```typescript
 import { SerialPort } from "serialport";
-import intel_hex from "intel-hex";
-import Stk500 from "stk500-esm";
 import fs from "fs/promises";
+import Stk500 from "stk500-esm";
 
 const stk = new Stk500();
 
@@ -42,9 +42,8 @@ async function upload(path: string) {
     const hexData = await fs.readFile("path/to/your/sketch.hex", {
       encoding: "utf8",
     });
-    const hex = intel_hex.parse(hexData).data;
     serialPort = new SerialPort({ path, baudRate: board.baud });
-    await stk.bootload(serialPort, hex, board, false);
+    await stk.bootload(serialPort, hexData, board, false);
     console.log("Programming successful!");
   } catch (error) {
     console.error("Programming failed:", error);
@@ -83,11 +82,11 @@ Replace `uno.ts` with the appropriate example file and `/dev/ttyACM0` with your 
 
 The main class `Stk500` provides the following methods:
 
-- `bootload(stream: NodeJS.ReadWriteStream, hex: Buffer, opt: Board, use_8_bit_addresses = false): Promise<void>`
+- `bootload(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, opt: Board, use_8_bit_addresses = false): Promise<void>`
 - `sync(stream: NodeJS.ReadWriteStream, attempts: number, timeout: number): Promise<Buffer>`
 - `verifySignature(stream: NodeJS.ReadWriteStream, signature: Buffer, timeout: number): Promise<Buffer>`
-- `upload(stream: NodeJS.ReadWriteStream, hex: Buffer, pageSize: number, timeout: number, use_8_bit_addresses = false): Promise<void>`
-- `verify(stream: NodeJS.ReadWriteStream, hex: Buffer, pageSize: number, timeout: number, use_8_bit_addresses = false): Promise<void>`
+- `upload(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, pageSize: number, timeout: number, use_8_bit_addresses = false): Promise<void>`
+- `verify(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, pageSize: number, timeout: number, use_8_bit_addresses = false): Promise<void>`
 
 For more detailed API information, please refer to the TypeScript definitions or the source code.
 

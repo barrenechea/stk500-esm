@@ -1,6 +1,6 @@
 {
   "name": "stk500-esm",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A modern, ESM-compatible, TypeScript implementation of the STK500v1 protocol for programming Arduino boards directly from Node.js or the browser.",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -30,7 +30,6 @@
     "@types/node": "^22.7.5",
     "eslint": "^9.12.0",
     "globals": "^15.10.0",
-    "intel-hex": "^0.2.0",
     "serialport": "^12.0.0",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2",

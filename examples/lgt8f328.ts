@@ -1,6 +1,5 @@
 import fs from "fs/promises";
 import { SerialPort } from "serialport";
-import intel_hex from "intel-hex";
 import Stk500 from "../src/index.js";
 
 const stk = new Stk500();
@@ -12,11 +11,6 @@ const board = {
   pageSize: 128,
   timeout: 400,
 };
-
-async function readHexFile(filePath) {
-  const data = await fs.readFile(filePath, { encoding: "utf8" });
-  return intel_hex.parse(data).data;
-}
 
 function createSerialPort(path, baudRate) {
   return new Promise((resolve, reject) => {
@@ -38,7 +32,9 @@ async function closeSerialPort(serialPort) {
 async function upload(path) {
   let serialPort;
   try {
-    const hex = await readHexFile("arduino-2.3.3/lgt8f328/Blink.ino.hex");
+    const hex = await fs.readFile("arduino-2.3.3/lgt8f328/Blink.ino.hex", {
+      encoding: "utf8",
+    });
     serialPort = await createSerialPort(path, board.baudRate);
     await stk.bootload(serialPort, hex, board, false);
     console.log("Programming SUCCESS!");
