@@ -27,7 +27,7 @@ export default function receiveData(
           startingBytes.includes(byte)
         );
         if (startIndex !== -1) {
-          data = data.slice(startIndex);
+          data = data.subarray(startIndex);
           started = true;
         } else {
           return; // Skip this chunk if starting byte not found

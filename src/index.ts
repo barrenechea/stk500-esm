@@ -30,8 +30,22 @@ interface STK500Options {
 
 class STK500 {
   private log: (...data: unknown[]) => void;
+  private stream: NodeJS.ReadWriteStream;
+  private board: Board;
 
-  constructor(opts: STK500Options = {}) {
+  /**
+   * Creates an instance of the STK500 programmer.
+   * @param stream - The read/write stream for communication with the device.
+   * @param board - The board configuration.
+   * @param opts - Additional options for the STK500 instance.
+   */
+  constructor(
+    stream: NodeJS.ReadWriteStream,
+    board: Board,
+    opts: STK500Options = {}
+  ) {
+    this.stream = stream;
+    this.board = board;
     this.log = opts.quiet
       ? () => {
           /* logging disabled */
@@ -43,29 +57,23 @@ class STK500 {
 
   /**
    * Attempts to synchronize communication with the device.
-   * @param stream - The read/write stream for communication.
    * @param attempts - The number of synchronization attempts.
-   * @param timeout - The timeout duration for each attempt in milliseconds.
    * @returns A promise that resolves with the synchronization response buffer.
    * @throws Error if synchronization fails after all attempts.
    */
-  async sync(
-    stream: NodeJS.ReadWriteStream,
-    attempts: number,
-    timeout: number
-  ): Promise<Buffer> {
+  async sync(attempts: number): Promise<Buffer> {
     this.log("sync");
     let tries = 1;
 
     const opt = {
       cmd: [Constants.Cmnd_STK_GET_SYNC],
       responseData: Constants.OK_RESPONSE,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
 
     while (tries <= attempts) {
       try {
-        const data = await sendCommand(stream, opt);
+        const data = await sendCommand(this.stream, opt);
         this.log("sync complete", data, tries);
         return data;
       } catch (err) {
@@ -79,32 +87,25 @@ class STK500 {
 
   /**
    * Verifies the device signature.
-   * @param stream - The read/write stream for communication.
-   * @param signature - The expected device signature.
-   * @param timeout - The timeout duration in milliseconds.
    * @returns A promise that resolves with the verification response buffer.
    * @throws Error if the signature verification fails.
    */
-  async verifySignature(
-    stream: NodeJS.ReadWriteStream,
-    signature: Buffer,
-    timeout: number
-  ): Promise<Buffer> {
+  async verifySignature(): Promise<Buffer> {
     this.log("verify signature");
     const match = Buffer.concat([
       Buffer.from([Constants.Resp_STK_INSYNC]),
-      signature,
+      this.board.signature,
       Buffer.from([Constants.Resp_STK_OK]),
     ]);
 
     const opt = {
       cmd: [Constants.Cmnd_STK_READ_SIGN],
       responseLength: match.length,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
 
     try {
-      const data = await sendCommand(stream, opt);
+      const data = await sendCommand(this.stream, opt);
       this.log("confirm signature", data, data.toString("hex"));
       return data;
     } catch (err) {
@@ -115,37 +116,26 @@ class STK500 {
 
   /**
    * Retrieves the device signature.
-   * @param stream - The read/write stream for communication.
-   * @param timeout - The timeout duration in milliseconds.
    * @returns A promise that resolves with the device signature buffer.
    */
-  async getSignature(
-    stream: NodeJS.ReadWriteStream,
-    timeout: number
-  ): Promise<Buffer> {
+  async getSignature(): Promise<Buffer> {
     this.log("get signature");
     const opt = {
       cmd: [Constants.Cmnd_STK_READ_SIGN],
       responseLength: 5,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
-    const data = await sendCommand(stream, opt);
+    const data = await sendCommand(this.stream, opt);
     this.log("getSignature", data);
     return data;
   }
 
   /**
    * Sets device-specific options.
-   * @param stream - The read/write stream for communication.
    * @param options - An object containing device-specific options.
-   * @param timeout - The timeout duration in milliseconds.
    * @returns A promise that resolves when the options are set.
    */
-  async setOptions(
-    stream: NodeJS.ReadWriteStream,
-    options: Record<string, number>,
-    timeout: number
-  ): Promise<void> {
+  async setOptions(options: Record<string, number>): Promise<void> {
     this.log("set device");
 
     const opt = {
@@ -173,71 +163,54 @@ class STK500 {
         options.flashsize1 || 0,
       ],
       responseData: Constants.OK_RESPONSE,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
 
-    const data = await sendCommand(stream, opt);
+    const data = await sendCommand(this.stream, opt);
     this.log("setOptions", data);
   }
 
   /**
    * Enters programming mode on the device.
-   * @param stream - The read/write stream for communication.
-   * @param timeout - The timeout duration in milliseconds.
    * @returns A promise that resolves with the response buffer.
    */
-  async enterProgrammingMode(
-    stream: NodeJS.ReadWriteStream,
-    timeout: number
-  ): Promise<Buffer> {
+  async enterProgrammingMode(): Promise<Buffer> {
     this.log("send enter programming mode");
     const opt = {
       cmd: [Constants.Cmnd_STK_ENTER_PROGMODE],
       responseData: Constants.OK_RESPONSE,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
-    const data = await sendCommand(stream, opt);
+    const data = await sendCommand(this.stream, opt);
     this.log("sent enter programming mode", data);
     return data;
   }
 
   /**
    * Loads a memory address for subsequent operations.
-   * @param stream - The read/write stream for communication.
    * @param useaddr - The address to load.
-   * @param timeout - The timeout duration in milliseconds.
    * @returns A promise that resolves with the response buffer.
    */
-  async loadAddress(
-    stream: NodeJS.ReadWriteStream,
-    useaddr: number,
-    timeout: number
-  ): Promise<Buffer> {
+  async loadAddress(useaddr: number): Promise<Buffer> {
     this.log("load address");
     const addr_low = useaddr & 0xff;
     const addr_high = (useaddr >> 8) & 0xff;
     const opt = {
       cmd: [Constants.Cmnd_STK_LOAD_ADDRESS, addr_low, addr_high],
       responseData: Constants.OK_RESPONSE,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
-    const data = await sendCommand(stream, opt);
+    const data = await sendCommand(this.stream, opt);
     this.log("loaded address", data);
     return data;
   }
 
   /**
    * Loads a page of data to be programmed.
-   * @param stream - The read/write stream for communication.
    * @param writeBytes - The buffer containing the data to be programmed.
-   * @param timeout - The timeout duration in milliseconds.
    * @returns A promise that resolves with the response buffer.
    */
-  async loadPage(
-    stream: NodeJS.ReadWriteStream,
-    writeBytes: Buffer,
-    timeout: number
-  ): Promise<Buffer> {
+  async loadPage(writeBytes: Buffer): Promise<Buffer> {
     this.log("load page");
     const bytes_low = writeBytes.length & 0xff;
     const bytes_high = writeBytes.length >> 8;
@@ -251,32 +224,21 @@ class STK500 {
     const opt = {
       cmd: cmd,
       responseData: Constants.OK_RESPONSE,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
-    const data = await sendCommand(stream, opt);
+    const data = await sendCommand(this.stream, opt);
     this.log("loaded page", data);
     return data;
   }
 
   /**
    * Uploads the provided hex data to the device.
-   * @param stream - The read/write stream for communication.
    * @param hexData - The hex data to be uploaded, as a string or buffer.
-   * @param pageSize - The page size for programming.
-   * @param timeout - The timeout duration in milliseconds.
-   * @param use8BitAddresses - Whether to use 8-bit addresses (default: false).
    * @returns A promise that resolves when the upload is complete.
    */
-  async upload(
-    stream: NodeJS.ReadWriteStream,
-    hexData: string | Buffer,
-    pageSize: number,
-    timeout: number,
-    use8BitAddresses = false
-  ): Promise<void> {
+  async upload(hexData: string | Buffer): Promise<void> {
     this.log("program");
 
-    // Parse the Intel HEX data
     const { data: hex } = parseIntelHex(hexData);
 
     let pageaddr = 0;
@@ -287,16 +249,18 @@ class STK500 {
       this.log("program page");
 
       try {
-        useaddr = use8BitAddresses ? pageaddr : pageaddr >> 1;
+        useaddr = this.board.use8BitAddresses ? pageaddr : pageaddr >> 1;
 
-        await this.loadAddress(stream, useaddr, timeout);
+        await this.loadAddress(useaddr);
 
         writeBytes = hex.slice(
           pageaddr,
-          hex.length > pageSize ? pageaddr + pageSize : hex.length
+          hex.length > this.board.pageSize
+            ? pageaddr + this.board.pageSize
+            : hex.length
         );
 
-        await this.loadPage(stream, writeBytes, timeout);
+        await this.loadPage(writeBytes);
 
         this.log("programmed page");
         pageaddr = pageaddr + writeBytes.length;
@@ -315,44 +279,28 @@ class STK500 {
 
   /**
    * Exits programming mode on the device.
-   * @param stream - The read/write stream for communication.
-   * @param timeout - The timeout duration in milliseconds.
    * @returns A promise that resolves with the response buffer.
    */
-  async exitProgrammingMode(
-    stream: NodeJS.ReadWriteStream,
-    timeout: number
-  ): Promise<Buffer> {
+  async exitProgrammingMode(): Promise<Buffer> {
     this.log("send leave programming mode");
     const opt = {
       cmd: [Constants.Cmnd_STK_LEAVE_PROGMODE],
       responseData: Constants.OK_RESPONSE,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
-    const data = await sendCommand(stream, opt);
+    const data = await sendCommand(this.stream, opt);
     this.log("sent leave programming mode", data);
     return data;
   }
 
   /**
    * Verifies the uploaded data against the provided hex data.
-   * @param stream - The read/write stream for communication.
    * @param hexData - The hex data to verify against, as a string or buffer.
-   * @param pageSize - The page size for verification.
-   * @param timeout - The timeout duration in milliseconds.
-   * @param use8BitAddresses - Whether to use 8-bit addresses (default: false).
    * @returns A promise that resolves when verification is complete.
    */
-  async verify(
-    stream: NodeJS.ReadWriteStream,
-    hexData: string | Buffer,
-    pageSize: number,
-    timeout: number,
-    use8BitAddresses = false
-  ): Promise<void> {
+  async verify(hexData: string | Buffer): Promise<void> {
     this.log("verify");
 
-    // Parse the Intel HEX data
     const { data: hex } = parseIntelHex(hexData);
 
     let pageaddr = 0;
@@ -363,16 +311,18 @@ class STK500 {
       this.log("verify page");
 
       try {
-        useaddr = use8BitAddresses ? pageaddr : pageaddr >> 1;
+        useaddr = this.board.use8BitAddresses ? pageaddr : pageaddr >> 1;
 
-        await this.loadAddress(stream, useaddr, timeout);
+        await this.loadAddress(useaddr);
 
         writeBytes = hex.slice(
           pageaddr,
-          hex.length > pageSize ? pageaddr + pageSize : hex.length
+          hex.length > this.board.pageSize
+            ? pageaddr + this.board.pageSize
+            : hex.length
         );
 
-        await this.verifyPage(stream, writeBytes, pageSize, timeout);
+        await this.verifyPage(writeBytes);
 
         this.log("verified page");
         pageaddr = pageaddr + writeBytes.length;
@@ -391,18 +341,10 @@ class STK500 {
 
   /**
    * Verifies a single page of data.
-   * @param stream - The read/write stream for communication.
    * @param writeBytes - The buffer containing the data to be verified.
-   * @param pageSize - The page size for verification.
-   * @param timeout - The timeout duration in milliseconds.
    * @returns A promise that resolves with the verification response buffer.
    */
-  async verifyPage(
-    stream: NodeJS.ReadWriteStream,
-    writeBytes: Buffer,
-    pageSize: number,
-    timeout: number
-  ): Promise<Buffer> {
+  async verifyPage(writeBytes: Buffer): Promise<Buffer> {
     this.log("verify page");
     const match = Buffer.concat([
       Buffer.from([Constants.Resp_STK_INSYNC]),
@@ -410,7 +352,10 @@ class STK500 {
       Buffer.from([Constants.Resp_STK_OK]),
     ]);
 
-    const size = writeBytes.length >= pageSize ? pageSize : writeBytes.length;
+    const size =
+      writeBytes.length >= this.board.pageSize
+        ? this.board.pageSize
+        : writeBytes.length;
 
     const opt = {
       cmd: [
@@ -420,52 +365,34 @@ class STK500 {
         0x46,
       ],
       responseLength: match.length,
-      timeout: timeout,
+      timeout: this.board.timeout,
     };
-    const data = await sendCommand(stream, opt);
+    const data = await sendCommand(this.stream, opt);
     this.log("confirm page", data, data.toString("hex"));
     return data;
   }
 
   /**
    * Performs the complete bootloading process for a device.
-   * @param stream - The read/write stream for communication.
    * @param hexData - The hex data to be uploaded, as a string or buffer.
-   * @param opt - The board configuration options.
    * @returns A promise that resolves when the bootloading process is complete.
    */
-  async bootload(
-    stream: NodeJS.ReadWriteStream,
-    hexData: string | Buffer,
-    opt: Board
-  ): Promise<void> {
-    // TODO: Are these calcs based on opt.pageSize okay? Not really sure
+  async bootload(hexData: string | Buffer): Promise<void> {
+    // TODO: Are these calcs based on board.pageSize okay? Not really sure
     const parameters = {
-      pagesizehigh: (opt.pageSize << 8) & 0xff,
-      pagesizelow: opt.pageSize & 0xff,
+      pagesizehigh: (this.board.pageSize << 8) & 0xff,
+      pagesizelow: this.board.pageSize & 0xff,
     };
 
-    await this.sync(stream, 3, opt.timeout);
-    await this.sync(stream, 3, opt.timeout);
-    await this.sync(stream, 3, opt.timeout);
-    await this.verifySignature(stream, opt.signature, opt.timeout);
-    await this.setOptions(stream, parameters, opt.timeout);
-    await this.enterProgrammingMode(stream, opt.timeout);
-    await this.upload(
-      stream,
-      hexData,
-      opt.pageSize,
-      opt.timeout,
-      opt.use8BitAddresses ?? false
-    );
-    await this.verify(
-      stream,
-      hexData,
-      opt.pageSize,
-      opt.timeout,
-      opt.use8BitAddresses ?? false
-    );
-    await this.exitProgrammingMode(stream, opt.timeout);
+    await this.sync(3);
+    await this.sync(3);
+    await this.sync(3);
+    await this.verifySignature();
+    await this.setOptions(parameters);
+    await this.enterProgrammingMode();
+    await this.upload(hexData);
+    await this.verify(hexData);
+    await this.exitProgrammingMode();
   }
 }
 

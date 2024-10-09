@@ -25,7 +25,7 @@ describe("receiveData", () => {
 
   test("should timeout", async () => {
     const inputBuffer = Constants.OK_RESPONSE;
-    port.write(inputBuffer.slice(0, 1));
+    port.write(inputBuffer.subarray(0, 1));
     await assert.rejects(receiveData(port, 10, inputBuffer.length), {
       message: "receiveData timeout after 10ms",
     });
@@ -33,9 +33,9 @@ describe("receiveData", () => {
 
   test("should receive a buffer in chunks", async () => {
     const inputBuffer = Constants.OK_RESPONSE;
-    port.write(inputBuffer.slice(0, 1));
+    port.write(inputBuffer.subarray(0, 1));
     setTimeout(() => {
-      port.write(inputBuffer.slice(1, 2));
+      port.write(inputBuffer.subarray(1, 2));
     }, 5);
     const data = await receiveData(port, 20, inputBuffer.length);
     assert(data.equals(inputBuffer));

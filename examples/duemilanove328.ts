@@ -2,8 +2,6 @@ import fs from "fs/promises";
 import { SerialPort } from "serialport";
 import STK500, { type Board } from "../src/index.js";
 
-const stk = new STK500();
-
 const board: Board = {
   name: "Duemilanove 328",
   baudRate: 57600,
@@ -37,7 +35,8 @@ async function upload(path) {
       { encoding: "utf8" }
     );
     serialPort = await createSerialPort(path, board.baudRate);
-    await stk.bootload(serialPort, hex, board);
+    const stk = new STK500(serialPort, board);
+    await stk.bootload(hex);
     console.log("Programming SUCCESS!");
   } catch (error) {
     console.error("Programming failed:", error);

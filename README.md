@@ -26,8 +26,6 @@ import { SerialPort } from "serialport";
 import fs from "fs/promises";
 import STK500, { type Board } from "stk500-esm";
 
-const stk = new STK500();
-
 const board: Board = {
   name: "Arduino Uno",
   baudRate: 115200,
@@ -42,8 +40,9 @@ async function upload(path: string) {
     const hexData = await fs.readFile("path/to/your/sketch.hex", {
       encoding: "utf8",
     });
-    serialPort = new SerialPort({ path, baudRate: board.baud });
-    await stk.bootload(serialPort, hexData, board);
+    serialPort = new SerialPort({ path, baudRate: board.baudRate });
+    const stk = new STK500(serialPort, board);
+    await stk.bootload(hexData);
     console.log("Programming successful!");
   } catch (error) {
     console.error("Programming failed:", error);
@@ -82,11 +81,12 @@ Replace `uno.ts` with the appropriate example file and `/dev/ttyACM0` with your 
 
 The main class `STK500` provides the following methods:
 
-- `bootload(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, opt: Board): Promise<void>`
-- `sync(stream: NodeJS.ReadWriteStream, attempts: number, timeout: number): Promise<Buffer>`
-- `verifySignature(stream: NodeJS.ReadWriteStream, signature: Buffer, timeout: number): Promise<Buffer>`
-- `upload(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, pageSize: number, timeout: number, use8BitAddresses = false): Promise<void>`
-- `verify(stream: NodeJS.ReadWriteStream, hexData: string | Buffer, pageSize: number, timeout: number, use8BitAddresses = false): Promise<void>`
+- `constructor(stream: NodeJS.ReadWriteStream, board: Board, opts?: STK500Options)`
+- `bootload(hexData: string | Buffer): Promise<void>`
+- `sync(attempts: number): Promise<Buffer>`
+- `verifySignature(): Promise<Buffer>`
+- `upload(hexData: string | Buffer): Promise<void>`
+- `verify(hexData: string | Buffer): Promise<void>`
 
 For more detailed API information, please refer to the TypeScript definitions or the source code.
 
