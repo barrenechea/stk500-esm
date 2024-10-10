@@ -28,6 +28,14 @@ interface STK500Options {
   quiet?: boolean;
 }
 
+/**
+ * A callback function for reporting bootloading progress.
+ * @param status - The current status of the bootloading process.
+ * @param percentage - The percentage of the bootloading process that is complete.
+ * @returns void
+ */
+type BootloadProgressCallback = (status: string, percentage: number) => void;
+
 class STK500 {
   private log: (...data: unknown[]) => void;
   private stream: NodeJS.ReadWriteStream;
@@ -234,9 +242,13 @@ class STK500 {
   /**
    * Uploads the provided hex data to the device.
    * @param hexData - The hex data to be uploaded, as a string or buffer.
+   * @param progressCallback - Optional callback to report upload progress.
    * @returns A promise that resolves when the upload is complete.
    */
-  async upload(hexData: string | Buffer): Promise<void> {
+  async upload(
+    hexData: string | Buffer,
+    progressCallback?: (percentage: number) => void
+  ): Promise<void> {
     this.log("program");
 
     const { data: hex } = parseIntelHex(hexData);
@@ -268,6 +280,10 @@ class STK500 {
         await new Promise((resolve) => setTimeout(resolve, 4));
 
         this.log("page done");
+
+        if (progressCallback) {
+          progressCallback((pageaddr / hex.length) * 100);
+        }
       } catch (error) {
         this.log("Error in page programming");
         throw error;
@@ -296,9 +312,13 @@ class STK500 {
   /**
    * Verifies the uploaded data against the provided hex data.
    * @param hexData - The hex data to verify against, as a string or buffer.
+   * @param progressCallback - Optional callback to report verification progress.
    * @returns A promise that resolves when verification is complete.
    */
-  async verify(hexData: string | Buffer): Promise<void> {
+  async verify(
+    hexData: string | Buffer,
+    progressCallback?: (percentage: number) => void
+  ): Promise<void> {
     this.log("verify");
 
     const { data: hex } = parseIntelHex(hexData);
@@ -330,6 +350,10 @@ class STK500 {
         await new Promise((resolve) => setTimeout(resolve, 4));
 
         this.log("verify done");
+
+        if (progressCallback) {
+          progressCallback((pageaddr / hex.length) * 100);
+        }
       } catch (error) {
         this.log("Error in page verification");
         throw error;
@@ -375,24 +399,45 @@ class STK500 {
   /**
    * Performs the complete bootloading process for a device.
    * @param hexData - The hex data to be uploaded, as a string or buffer.
+   * @param progressCallback - Optional callback to report progress.
    * @returns A promise that resolves when the bootloading process is complete.
    */
-  async bootload(hexData: string | Buffer): Promise<void> {
-    // TODO: Are these calcs based on board.pageSize okay? Not really sure
+  async bootload(
+    hexData: string | Buffer,
+    progressCallback?: BootloadProgressCallback
+  ): Promise<void> {
     const parameters = {
       pagesizehigh: (this.board.pageSize << 8) & 0xff,
       pagesizelow: this.board.pageSize & 0xff,
     };
 
+    const updateProgress = (status: string, percentage: number) => {
+      if (progressCallback) {
+        progressCallback(status, percentage);
+      }
+    };
+
+    updateProgress("Syncing", 0);
     await this.sync(3);
     await this.sync(3);
     await this.sync(3);
+    updateProgress("Verifying signature", 10);
     await this.verifySignature();
+    updateProgress("Setting options", 20);
     await this.setOptions(parameters);
+    updateProgress("Entering programming mode", 30);
     await this.enterProgrammingMode();
-    await this.upload(hexData);
-    await this.verify(hexData);
+    updateProgress("Uploading", 40);
+    await this.upload(hexData, (uploadPercentage) => {
+      updateProgress("Uploading", 40 + uploadPercentage * 0.3);
+    });
+    updateProgress("Verifying", 70);
+    await this.verify(hexData, (verifyPercentage) => {
+      updateProgress("Verifying", 70 + verifyPercentage * 0.25);
+    });
+    updateProgress("Exiting programming mode", 95);
     await this.exitProgrammingMode();
+    updateProgress("Complete", 100);
   }
 }
 

@@ -82,11 +82,11 @@ Replace `uno.ts` with the appropriate example file and `/dev/ttyACM0` with your 
 The main class `STK500` provides the following methods:
 
 - `constructor(stream: NodeJS.ReadWriteStream, board: Board, opts?: STK500Options)`
-- `bootload(hexData: string | Buffer): Promise<void>`
+- `bootload(hexData: string | Buffer, progressCallback?: BootloadProgressCallback): Promise<void>`
 - `sync(attempts: number): Promise<Buffer>`
 - `verifySignature(): Promise<Buffer>`
-- `upload(hexData: string | Buffer): Promise<void>`
-- `verify(hexData: string | Buffer): Promise<void>`
+- `upload(hexData: string | Buffer, progressCallback?: (percentage: number) => void): Promise<void>`
+- `verify(hexData: string | Buffer, progressCallback?: (percentage: number) => void): Promise<void>`
 
 For more detailed API information, please refer to the TypeScript definitions or the source code.
 
