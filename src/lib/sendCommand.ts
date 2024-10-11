@@ -1,5 +1,6 @@
 import receiveData from "./receiveData.js";
 import Constants from "./constants.js";
+import type { Duplex } from "node:stream";
 
 /**
  * Options for sending a command to the device.
@@ -24,7 +25,7 @@ interface SendCommandOptions {
  * @throws Will throw an error if sending fails, if the response doesn't match expectations, or if a timeout occurs.
  */
 export default async function sendCommand(
-  stream: NodeJS.ReadWriteStream,
+  stream: Duplex,
   opt: SendCommandOptions
 ): Promise<Uint8Array> {
   const timeout = opt.timeout ?? 0;

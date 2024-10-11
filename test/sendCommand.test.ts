@@ -5,7 +5,7 @@ import Constants from "../src/lib/constants.js";
 import sendCommand from "../src/lib/sendCommand.js";
 
 describe("sendCommands", () => {
-  let stream: NodeJS.ReadWriteStream;
+  let stream: Duplex;
 
   beforeEach(() => {
     stream = new Duplex({

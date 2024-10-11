@@ -81,7 +81,7 @@ Replace `uno.ts` with the appropriate example file and `/dev/ttyACM0` with your 
 
 The main class `STK500` provides the following methods:
 
-- `constructor(stream: NodeJS.ReadWriteStream, board: Board, opts?: STK500Options)`
+- `constructor(stream: Duplex, board: Board, opts?: STK500Options)`
 - `bootload(hexData: string | Uint8Array, progressCallback?: BootloadProgressCallback): Promise<void>`
 - `sync(attempts: number): Promise<Uint8Array>`
 - `verifySignature(): Promise<Uint8Array>`

@@ -11,7 +11,7 @@ const board: Board = {
   use8BitAddresses: true,
 };
 
-function createSerialPort(path, baudRate) {
+function createSerialPort(path: string, baudRate: number): Promise<SerialPort> {
   return new Promise((resolve, reject) => {
     const serialPort = new SerialPort({ path, baudRate });
     serialPort.on("open", () => resolve(serialPort));
@@ -19,8 +19,8 @@ function createSerialPort(path, baudRate) {
   });
 }
 
-async function closeSerialPort(serialPort) {
-  return new Promise<void>((resolve) => {
+async function closeSerialPort(serialPort: SerialPort): Promise<void> {
+  return new Promise((resolve) => {
     serialPort.close((error) => {
       if (error) console.log(error);
       resolve();
@@ -29,7 +29,7 @@ async function closeSerialPort(serialPort) {
 }
 
 async function upload(path) {
-  let serialPort;
+  let serialPort: SerialPort | undefined;
   try {
     const hex = await fs.readFile("arduino-1.0.6/168/avr4809.cpp.hex", {
       encoding: "utf8",

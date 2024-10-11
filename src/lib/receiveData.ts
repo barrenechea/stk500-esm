@@ -1,3 +1,4 @@
+import type { Duplex } from "node:stream";
 import Constants from "./constants.js";
 
 const startingBytes = [Constants.Resp_STK_INSYNC];
@@ -12,7 +13,7 @@ const startingBytes = [Constants.Resp_STK_INSYNC];
  * @throws Will throw an error if the timeout is reached or if the received data exceeds the expected length.
  */
 export default function receiveData(
-  stream: NodeJS.ReadWriteStream,
+  stream: Duplex,
   timeout: number,
   responseLength: number
 ): Promise<Uint8Array> {

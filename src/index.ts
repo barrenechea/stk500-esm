@@ -1,6 +1,7 @@
 import Constants from "./lib/constants.js";
 import sendCommand from "./lib/sendCommand.js";
 import parseIntelHex from "./lib/intelHexParser.js";
+import type { Duplex } from "node:stream";
 
 /**
  * Represents the configuration for a specific board.
@@ -38,7 +39,7 @@ type BootloadProgressCallback = (status: string, percentage: number) => void;
 
 class STK500 {
   private log: (...data: unknown[]) => void;
-  private stream: NodeJS.ReadWriteStream;
+  private stream: Duplex;
   private board: Board;
 
   /**
@@ -47,11 +48,7 @@ class STK500 {
    * @param board - The board configuration.
    * @param opts - Additional options for the STK500 instance.
    */
-  constructor(
-    stream: NodeJS.ReadWriteStream,
-    board: Board,
-    opts: STK500Options = {}
-  ) {
+  constructor(stream: Duplex, board: Board, opts: STK500Options = {}) {
     this.stream = stream;
     this.board = board;
     this.log = opts.quiet

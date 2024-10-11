@@ -5,7 +5,7 @@ import receiveData from "../src/lib/receiveData.js";
 import { Duplex } from "node:stream";
 
 describe("receiveData", () => {
-  let stream: NodeJS.ReadWriteStream;
+  let stream: Duplex;
 
   beforeEach(() => {
     stream = new Duplex({
