@@ -1,28 +1,28 @@
 import { test, describe, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { EventEmitter } from "node:events";
+import { Duplex } from "node:stream";
 import Constants from "../src/lib/constants.js";
 import sendCommand from "../src/lib/sendCommand.js";
 
 describe("sendCommands", () => {
-  let hardware;
+  let stream: NodeJS.ReadWriteStream;
 
   beforeEach(() => {
-    hardware = new EventEmitter();
-    hardware.write = (data, callback) => {
-      callback(null, data);
-    };
-    hardware.insert = (data) => {
-      hardware.emit("data", data);
-    };
+    stream = new Duplex({
+      read() {},
+      write(chunk, _encoding, callback) {
+        this.push(chunk);
+        callback();
+      },
+    });
   });
 
   afterEach(() => {
-    hardware.removeAllListeners();
+    (stream as Duplex).removeAllListeners();
   });
 
-  test("should write a buffer command", async () => {
-    const cmd = Buffer.from([
+  test("should write a Uint8Array command", async () => {
+    const cmd = new Uint8Array([
       Constants.Cmnd_STK_GET_SYNC,
       Constants.Sync_CRC_EOP,
     ]);
@@ -33,19 +33,25 @@ describe("sendCommands", () => {
     };
 
     let writeCalled = false;
-    hardware.write = (data, callback) => {
+    const originalWrite = stream.write;
+    stream.write = (chunk: any, encoding?: any, callback?: any) => {
       writeCalled = true;
-      assert(data.equals(cmd));
-      callback(null, data);
+      assert(
+        chunk instanceof Uint8Array &&
+          chunk.every((value, index) => value === cmd[index])
+      );
+      return originalWrite.call(stream, chunk, encoding, callback);
     };
 
     setTimeout(() => {
-      hardware.insert(Constants.OK_RESPONSE);
+      stream.push(Constants.OK_RESPONSE);
     }, 0);
 
-    const data = await sendCommand(hardware, opt);
+    const data = await sendCommand(stream, opt);
     assert(writeCalled);
-    assert(data.equals(Constants.OK_RESPONSE));
+    assert(
+      data.every((value, index) => value === Constants.OK_RESPONSE[index])
+    );
   });
 
   test("should write an array command", async () => {
@@ -56,23 +62,32 @@ describe("sendCommands", () => {
     };
 
     let writeCalled = false;
-    hardware.write = (data, callback) => {
+    const originalWrite = stream.write;
+    stream.write = (chunk: any, encoding?: any, callback?: any) => {
       writeCalled = true;
       assert(
-        data.equals(
-          Buffer.from([Constants.Cmnd_STK_GET_SYNC, Constants.Sync_CRC_EOP])
-        )
+        chunk instanceof Uint8Array &&
+          chunk.every(
+            (value, index) =>
+              value ===
+              new Uint8Array([
+                Constants.Cmnd_STK_GET_SYNC,
+                Constants.Sync_CRC_EOP,
+              ])[index]
+          )
       );
-      callback(null, data);
+      return originalWrite.call(stream, chunk, encoding, callback);
     };
 
     setTimeout(() => {
-      hardware.insert(Constants.OK_RESPONSE);
+      stream.push(Constants.OK_RESPONSE);
     }, 0);
 
-    const data = await sendCommand(hardware, opt);
+    const data = await sendCommand(stream, opt);
     assert(writeCalled);
-    assert(data.equals(Constants.OK_RESPONSE));
+    assert(
+      data.every((value, index) => value === Constants.OK_RESPONSE[index])
+    );
   });
 
   test("should timeout", async () => {
@@ -82,7 +97,7 @@ describe("sendCommands", () => {
       timeout: 10,
     };
 
-    await assert.rejects(sendCommand(hardware, opt), {
+    await assert.rejects(sendCommand(stream, opt), {
       message: "Sending 3020: receiveData timeout after 10ms",
     });
   });
@@ -95,11 +110,13 @@ describe("sendCommands", () => {
     };
 
     setTimeout(() => {
-      hardware.insert(Constants.OK_RESPONSE);
+      stream.push(Constants.OK_RESPONSE);
     }, 0);
 
-    const data = await sendCommand(hardware, opt);
-    assert(data.equals(Constants.OK_RESPONSE));
+    const data = await sendCommand(stream, opt);
+    assert(
+      data.every((value, index) => value === Constants.OK_RESPONSE[index])
+    );
   });
 
   test("should match response", async () => {
@@ -110,10 +127,12 @@ describe("sendCommands", () => {
     };
 
     setTimeout(() => {
-      hardware.insert(Constants.OK_RESPONSE);
+      stream.push(Constants.OK_RESPONSE);
     }, 0);
 
-    const data = await sendCommand(hardware, opt);
-    assert(data.equals(Constants.OK_RESPONSE));
+    const data = await sendCommand(stream, opt);
+    assert(
+      data.every((value, index) => value === Constants.OK_RESPONSE[index])
+    );
   });
 });

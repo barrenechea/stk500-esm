@@ -5,7 +5,7 @@ import STK500, { type Board } from "../src/index.js";
 const board: Board = {
   name: "Duemilanove 328",
   baudRate: 57600,
-  signature: Buffer.from([0x1e, 0x95, 0x0f]),
+  signature: new Uint8Array([0x1e, 0x95, 0x0f]),
   pageSize: 128,
   timeout: 400,
 };

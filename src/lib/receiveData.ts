@@ -8,22 +8,22 @@ const startingBytes = [Constants.Resp_STK_INSYNC];
  * @param stream - The read/write stream to receive data from.
  * @param timeout - The maximum time to wait for data, in milliseconds.
  * @param responseLength - The expected length of the response.
- * @returns A promise that resolves with the received data as a Buffer.
+ * @returns A promise that resolves with the received data as a Uint8Array.
  * @throws Will throw an error if the timeout is reached or if the received data exceeds the expected length.
  */
 export default function receiveData(
   stream: NodeJS.ReadWriteStream,
   timeout: number,
   responseLength: number
-): Promise<Buffer> {
+): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
-    let buffer = Buffer.alloc(0);
+    let buffer = new Uint8Array(0);
     let started = false;
     let timeoutId: NodeJS.Timeout;
 
-    const handleChunk = (data: Buffer) => {
+    const handleChunk = (data: Uint8Array) => {
       if (!started) {
-        const startIndex = data.findIndex((byte) =>
+        const startIndex = Array.from(data).findIndex((byte) =>
           startingBytes.includes(byte)
         );
         if (startIndex !== -1) {
@@ -34,7 +34,7 @@ export default function receiveData(
         }
       }
 
-      buffer = Buffer.concat([buffer, data]);
+      buffer = new Uint8Array([...buffer, ...data]);
 
       if (buffer.length > responseLength) {
         finished(

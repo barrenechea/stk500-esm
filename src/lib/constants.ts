@@ -18,5 +18,5 @@ export default {
 
   Cmnd_STK_READ_PAGE: 0x74,
 
-  OK_RESPONSE: Buffer.from([Resp_STK_INSYNC, Resp_STK_OK]),
+  OK_RESPONSE: new Uint8Array([Resp_STK_INSYNC, Resp_STK_OK]),
 };

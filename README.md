@@ -29,7 +29,7 @@ import STK500, { type Board } from "stk500-esm";
 const board: Board = {
   name: "Arduino Uno",
   baudRate: 115200,
-  signature: Buffer.from([0x1e, 0x95, 0x0f]),
+  signature: new Uint8Array([0x1e, 0x95, 0x0f]),
   pageSize: 128,
   timeout: 400,
 };
@@ -82,11 +82,11 @@ Replace `uno.ts` with the appropriate example file and `/dev/ttyACM0` with your 
 The main class `STK500` provides the following methods:
 
 - `constructor(stream: NodeJS.ReadWriteStream, board: Board, opts?: STK500Options)`
-- `bootload(hexData: string | Buffer, progressCallback?: BootloadProgressCallback): Promise<void>`
-- `sync(attempts: number): Promise<Buffer>`
-- `verifySignature(): Promise<Buffer>`
-- `upload(hexData: string | Buffer, progressCallback?: (percentage: number) => void): Promise<void>`
-- `verify(hexData: string | Buffer, progressCallback?: (percentage: number) => void): Promise<void>`
+- `bootload(hexData: string | Uint8Array, progressCallback?: BootloadProgressCallback): Promise<void>`
+- `sync(attempts: number): Promise<Uint8Array>`
+- `verifySignature(): Promise<Uint8Array>`
+- `upload(hexData: string | Uint8Array, progressCallback?: (percentage: number) => void): Promise<void>`
+- `verify(hexData: string | Uint8Array, progressCallback?: (percentage: number) => void): Promise<void>`
 
 For more detailed API information, please refer to the TypeScript definitions or the source code.
 

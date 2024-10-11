@@ -11,7 +11,7 @@ export interface Board {
   /** The baud rate for communication with the board. */
   baudRate: number;
   /** The expected signature of the board. */
-  signature: Buffer;
+  signature: Uint8Array;
   /** The page size for programming operations. */
   pageSize: number;
   /** The timeout duration for operations in milliseconds. */
@@ -66,10 +66,10 @@ class STK500 {
   /**
    * Attempts to synchronize communication with the device.
    * @param attempts - The number of synchronization attempts.
-   * @returns A promise that resolves with the synchronization response buffer.
+   * @returns A promise that resolves with the synchronization response data.
    * @throws Error if synchronization fails after all attempts.
    */
-  async sync(attempts: number): Promise<Buffer> {
+  async sync(attempts: number): Promise<Uint8Array> {
     this.log("sync");
     let tries = 1;
 
@@ -95,15 +95,15 @@ class STK500 {
 
   /**
    * Verifies the device signature.
-   * @returns A promise that resolves with the verification response buffer.
+   * @returns A promise that resolves with the verification response data.
    * @throws Error if the signature verification fails.
    */
-  async verifySignature(): Promise<Buffer> {
+  async verifySignature(): Promise<Uint8Array> {
     this.log("verify signature");
-    const match = Buffer.concat([
-      Buffer.from([Constants.Resp_STK_INSYNC]),
-      this.board.signature,
-      Buffer.from([Constants.Resp_STK_OK]),
+    const match = new Uint8Array([
+      Constants.Resp_STK_INSYNC,
+      ...this.board.signature,
+      Constants.Resp_STK_OK,
     ]);
 
     const opt = {
@@ -114,7 +114,13 @@ class STK500 {
 
     try {
       const data = await sendCommand(this.stream, opt);
-      this.log("confirm signature", data, data.toString("hex"));
+      this.log(
+        "confirm signature",
+        data,
+        Array.from(data)
+          .map((b) => b.toString(16))
+          .join("")
+      );
       return data;
     } catch (err) {
       this.log("confirm signature", err, "no data");
@@ -124,9 +130,9 @@ class STK500 {
 
   /**
    * Retrieves the device signature.
-   * @returns A promise that resolves with the device signature buffer.
+   * @returns A promise that resolves with the device signature data.
    */
-  async getSignature(): Promise<Buffer> {
+  async getSignature(): Promise<Uint8Array> {
     this.log("get signature");
     const opt = {
       cmd: [Constants.Cmnd_STK_READ_SIGN],
@@ -180,9 +186,9 @@ class STK500 {
 
   /**
    * Enters programming mode on the device.
-   * @returns A promise that resolves with the response buffer.
+   * @returns A promise that resolves with the response data.
    */
-  async enterProgrammingMode(): Promise<Buffer> {
+  async enterProgrammingMode(): Promise<Uint8Array> {
     this.log("send enter programming mode");
     const opt = {
       cmd: [Constants.Cmnd_STK_ENTER_PROGMODE],
@@ -197,9 +203,9 @@ class STK500 {
   /**
    * Loads a memory address for subsequent operations.
    * @param useaddr - The address to load.
-   * @returns A promise that resolves with the response buffer.
+   * @returns A promise that resolves with the response data.
    */
-  async loadAddress(useaddr: number): Promise<Buffer> {
+  async loadAddress(useaddr: number): Promise<Uint8Array> {
     this.log("load address");
     const addr_low = useaddr & 0xff;
     const addr_high = (useaddr >> 8) & 0xff;
@@ -215,18 +221,21 @@ class STK500 {
 
   /**
    * Loads a page of data to be programmed.
-   * @param writeBytes - The buffer containing the data to be programmed.
-   * @returns A promise that resolves with the response buffer.
+   * @param writeBytes - The data to be programmed.
+   * @returns A promise that resolves with the response data.
    */
-  async loadPage(writeBytes: Buffer): Promise<Buffer> {
+  async loadPage(writeBytes: Uint8Array): Promise<Uint8Array> {
     this.log("load page");
     const bytes_low = writeBytes.length & 0xff;
     const bytes_high = writeBytes.length >> 8;
 
-    const cmd = Buffer.concat([
-      Buffer.from([Constants.Cmnd_STK_PROG_PAGE, bytes_high, bytes_low, 0x46]),
-      writeBytes,
-      Buffer.from([Constants.Sync_CRC_EOP]),
+    const cmd = new Uint8Array([
+      Constants.Cmnd_STK_PROG_PAGE,
+      bytes_high,
+      bytes_low,
+      0x46,
+      ...writeBytes,
+      Constants.Sync_CRC_EOP,
     ]);
 
     const opt = {
@@ -241,12 +250,12 @@ class STK500 {
 
   /**
    * Uploads the provided hex data to the device.
-   * @param hexData - The hex data to be uploaded, as a string or buffer.
+   * @param hexData - The hex data to be uploaded, as a string or Uint8Array.
    * @param progressCallback - Optional callback to report upload progress.
    * @returns A promise that resolves when the upload is complete.
    */
   async upload(
-    hexData: string | Buffer,
+    hexData: string | Uint8Array,
     progressCallback?: (percentage: number) => void
   ): Promise<void> {
     this.log("program");
@@ -265,7 +274,7 @@ class STK500 {
 
         await this.loadAddress(useaddr);
 
-        writeBytes = hex.slice(
+        writeBytes = hex.subarray(
           pageaddr,
           hex.length > this.board.pageSize
             ? pageaddr + this.board.pageSize
@@ -295,9 +304,9 @@ class STK500 {
 
   /**
    * Exits programming mode on the device.
-   * @returns A promise that resolves with the response buffer.
+   * @returns A promise that resolves with the response data.
    */
-  async exitProgrammingMode(): Promise<Buffer> {
+  async exitProgrammingMode(): Promise<Uint8Array> {
     this.log("send leave programming mode");
     const opt = {
       cmd: [Constants.Cmnd_STK_LEAVE_PROGMODE],
@@ -311,12 +320,12 @@ class STK500 {
 
   /**
    * Verifies the uploaded data against the provided hex data.
-   * @param hexData - The hex data to verify against, as a string or buffer.
+   * @param hexData - The hex data to verify against, as a string or Uint8Array.
    * @param progressCallback - Optional callback to report verification progress.
    * @returns A promise that resolves when verification is complete.
    */
   async verify(
-    hexData: string | Buffer,
+    hexData: string | Uint8Array,
     progressCallback?: (percentage: number) => void
   ): Promise<void> {
     this.log("verify");
@@ -335,7 +344,7 @@ class STK500 {
 
         await this.loadAddress(useaddr);
 
-        writeBytes = hex.slice(
+        writeBytes = hex.subarray(
           pageaddr,
           hex.length > this.board.pageSize
             ? pageaddr + this.board.pageSize
@@ -365,15 +374,15 @@ class STK500 {
 
   /**
    * Verifies a single page of data.
-   * @param writeBytes - The buffer containing the data to be verified.
-   * @returns A promise that resolves with the verification response buffer.
+   * @param writeBytes - The data to be verified.
+   * @returns A promise that resolves with the verification response data.
    */
-  async verifyPage(writeBytes: Buffer): Promise<Buffer> {
+  async verifyPage(writeBytes: Uint8Array): Promise<Uint8Array> {
     this.log("verify page");
-    const match = Buffer.concat([
-      Buffer.from([Constants.Resp_STK_INSYNC]),
-      writeBytes,
-      Buffer.from([Constants.Resp_STK_OK]),
+    const match = new Uint8Array([
+      Constants.Resp_STK_INSYNC,
+      ...writeBytes,
+      Constants.Resp_STK_OK,
     ]);
 
     const size =
@@ -392,18 +401,24 @@ class STK500 {
       timeout: this.board.timeout,
     };
     const data = await sendCommand(this.stream, opt);
-    this.log("confirm page", data, data.toString("hex"));
+    this.log(
+      "confirm page",
+      data,
+      Array.from(data)
+        .map((b) => b.toString(16))
+        .join("")
+    );
     return data;
   }
 
   /**
    * Performs the complete bootloading process for a device.
-   * @param hexData - The hex data to be uploaded, as a string or buffer.
+   * @param hexData - The hex data to be uploaded, as a string or Uint8Array.
    * @param progressCallback - Optional callback to report progress.
    * @returns A promise that resolves when the bootloading process is complete.
    */
   async bootload(
-    hexData: string | Buffer,
+    hexData: string | Uint8Array,
     progressCallback?: BootloadProgressCallback
   ): Promise<void> {
     const parameters = {

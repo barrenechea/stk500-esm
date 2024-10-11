@@ -13,8 +13,8 @@ const EMPTY_VALUE = 0xff;
  * Represents the result of parsing Intel HEX data.
  */
 interface ParseResult {
-  /** The parsed data as a Buffer. */
-  data: Buffer;
+  /** The parsed data as a Uint8Array. */
+  data: Uint8Array;
   /** The start segment address, if present in the HEX data. */
   startSegmentAddress: number | null;
   /** The start linear address, if present in the HEX data. */
@@ -24,22 +24,22 @@ interface ParseResult {
 /**
  * Parses Intel HEX format data into a binary buffer.
  *
- * @param data - The Intel HEX data to parse, as a string or Buffer.
+ * @param data - The Intel HEX data to parse, as a string or Uint8Array.
  * @param bufferSize - The initial size of the buffer to allocate (default: 8192).
  * @param addressOffset - An offset to apply to all addresses in the HEX data (default: 0).
  * @returns An object containing the parsed binary data and any start addresses found.
  * @throws Will throw an error if the HEX data is invalid or parsing fails.
  */
 export default function parseIntelHex(
-  data: string | Buffer,
+  data: string | Uint8Array,
   bufferSize?: number,
   addressOffset?: number
 ): ParseResult {
-  if (data instanceof Buffer) {
-    data = data.toString("ascii");
+  if (data instanceof Uint8Array) {
+    data = new TextDecoder().decode(data);
   }
 
-  let buf = Buffer.alloc(bufferSize ?? 8192);
+  let buf = new Uint8Array(bufferSize ?? 8192);
   let bufLength = 0;
   let highAddress = 0;
   let startSegmentAddress: number | null = null;
@@ -62,7 +62,10 @@ export default function parseIntelHex(
     const recordType = parseInt(data.slice(pos, pos + 2), 16);
     pos += 2;
     const dataField = data.slice(pos, pos + dataLength * 2);
-    const dataFieldBuf = Buffer.from(dataField, "hex");
+    const dataFieldBuf = new Uint8Array(dataLength);
+    for (let i = 0; i < dataLength; i++) {
+      dataFieldBuf[i] = parseInt(dataField.slice(i * 2, i * 2 + 2), 16);
+    }
     pos += dataLength * 2;
     const checksum = parseInt(data.slice(pos, pos + 2), 16);
     pos += 2;
@@ -84,17 +87,17 @@ export default function parseIntelHex(
       case DATA: {
         const absoluteAddress = highAddress + lowAddress - offset;
         if (absoluteAddress + dataLength >= buf.length) {
-          const tmp = Buffer.alloc((absoluteAddress + dataLength) * 2);
-          buf.copy(tmp, 0, 0, bufLength);
+          const tmp = new Uint8Array((absoluteAddress + dataLength) * 2);
+          tmp.set(buf.subarray(0, bufLength));
           tmp.fill(EMPTY_VALUE, bufLength, absoluteAddress);
-          dataFieldBuf.copy(tmp, absoluteAddress);
+          tmp.set(dataFieldBuf, absoluteAddress);
           bufLength = Math.max(bufLength, absoluteAddress + dataLength);
           buf = tmp;
         } else {
           if (absoluteAddress > bufLength) {
             buf.fill(EMPTY_VALUE, bufLength, absoluteAddress);
           }
-          dataFieldBuf.copy(buf, absoluteAddress);
+          buf.set(dataFieldBuf, absoluteAddress);
           bufLength = Math.max(bufLength, absoluteAddress + dataLength);
         }
         if (bufLength >= (bufferSize || 8192)) {
