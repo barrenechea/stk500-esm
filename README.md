@@ -37,9 +37,7 @@ const board: Board = {
 async function upload(path: string) {
   let serialPort;
   try {
-    const hexData = await fs.readFile("path/to/your/sketch.hex", {
-      encoding: "utf8",
-    });
+    const hexData = await fs.readFile("path/to/your/sketch.hex");
     serialPort = new SerialPort({ path, baudRate: board.baudRate });
     const stk = new STK500(serialPort, board);
     await stk.bootload(hexData);

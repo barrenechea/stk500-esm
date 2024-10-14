@@ -30,9 +30,7 @@ async function closeSerialPort(serialPort: SerialPort): Promise<void> {
 async function upload(path) {
   let serialPort: SerialPort | undefined;
   try {
-    const hex = await fs.readFile("arduino-2.3.3/lgt8f328/Blink.ino.hex", {
-      encoding: "utf8",
-    });
+    const hex = await fs.readFile("arduino-2.3.3/lgt8f328/Blink.ino.hex");
     serialPort = await createSerialPort(path, board.baudRate);
     const stk = new STK500(serialPort, board);
     await stk.bootload(hex);
