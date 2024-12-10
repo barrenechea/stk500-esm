@@ -100,7 +100,7 @@ export default function parseIntelHex(
           buf.set(dataFieldBuf, absoluteAddress);
           bufLength = Math.max(bufLength, absoluteAddress + dataLength);
         }
-        if (bufLength >= (bufferSize || 8192)) {
+        if (bufLength >= (bufferSize ?? 8192)) {
           return {
             data: buf.subarray(0, bufLength),
             startSegmentAddress,
